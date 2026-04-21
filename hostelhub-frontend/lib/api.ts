@@ -12,6 +12,21 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v
 
 const TOKEN_KEY = "hh_access";
 const REFRESH_KEY = "hh_refresh";
+// Non-httpOnly cookie so Next.js middleware (Edge runtime) can read auth state.
+// The token is already exposed to JS via localStorage, so this does not widen
+// the XSS surface. Production should move to httpOnly cookies + server routes.
+const AUTH_COOKIE = "hh_auth";
+const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60; // matches JWT access lifetime
+
+function setAuthCookie(value: string) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${AUTH_COOKIE}=${value}; path=/; max-age=${AUTH_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
+}
+
+function clearAuthCookie() {
+  if (typeof document === "undefined") return;
+  document.cookie = `${AUTH_COOKIE}=; path=/; max-age=0; samesite=lax`;
+}
 
 export const tokenStorage = {
   getAccess: () => (typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null),
@@ -20,11 +35,13 @@ export const tokenStorage = {
     if (typeof window === "undefined") return;
     localStorage.setItem(TOKEN_KEY, access);
     localStorage.setItem(REFRESH_KEY, refresh);
+    setAuthCookie("1");
   },
   clear: () => {
     if (typeof window === "undefined") return;
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
+    clearAuthCookie();
   },
 };
 
@@ -233,7 +250,11 @@ export const authApi = {
     api.post<OTPRequestResponse>("/auth/otp/request/", { phone }, { skipAuth: true }),
 
   verifyOtp: (phone: string, code: string, role: UserRole) =>
-    api.post<OTPVerifyResponse>("/auth/otp/verify/", { phone, code, role }, { skipAuth: true }),
+    api.post<OTPVerifyResponse>(
+      "/auth/otp/verify/",
+      { phone, code },
+      { skipAuth: true, headers: { "X-HMS-Registration-Role": role } }
+    ),
 
   superAdminLogin: (email: string, password: string) =>
     api.post<OTPVerifyResponse>("/auth/superadmin/login/", { email, password }, { skipAuth: true }),

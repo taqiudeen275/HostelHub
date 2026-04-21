@@ -39,7 +39,7 @@ class TestPhoneNormalization:
         assert normalize_phone("0261234567") == "+233261234567"
 
     def test_invalid_too_short_raises(self):
-        with pytest.raises(ValueError, match="Invalid phone number"):
+        with pytest.raises(ValueError, match="not a valid number"):
             normalize_phone("12345")
 
     def test_invalid_letters_raises(self):

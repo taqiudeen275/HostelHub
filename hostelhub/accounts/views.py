@@ -97,7 +97,14 @@ class OTPVerifyView(APIView):
 
         phone = serializer.validated_data["phone"]
         code = serializer.validated_data["code"]
-        role = serializer.validated_data.get("role", UserRole.STUDENT)
+
+        # Role is carried by the X-HMS-Registration-Role header per PRD §8.1.
+        # Body `role` field is kept for backwards compatibility during M1.
+        header_role = request.headers.get("X-HMS-Registration-Role")
+        if header_role in (UserRole.STUDENT, UserRole.HOSTEL_ADMIN):
+            role = header_role
+        else:
+            role = serializer.validated_data.get("role", UserRole.STUDENT)
 
         # Validate OTP
         valid, error_msg = validate_otp(phone, code)

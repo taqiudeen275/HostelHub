@@ -29,13 +29,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from backend on mount (if we have a stored token)
+  // Load user from backend on mount (if we have a stored token).
+  // We also re-assert the auth cookie here so the middleware stays in sync
+  // across page reloads (cookie has a shorter max-age than localStorage).
   useEffect(() => {
-    const token = tokenStorage.getAccess();
-    if (!token) {
+    const accessToken = tokenStorage.getAccess();
+    const refreshToken = tokenStorage.getRefresh();
+    if (!accessToken || !refreshToken) {
       setIsLoading(false);
       return;
     }
+    // Re-set the cookie so middleware sees us on this navigation.
+    tokenStorage.setTokens(accessToken, refreshToken);
     authApi
       .me()
       .then((u) => setUser(u))

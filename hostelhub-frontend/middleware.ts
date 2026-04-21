@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PROTECTED_ROUTES: Record<string, string> = {
+const PROTECTED_PREFIXES: Record<string, "STUDENT" | "HOSTEL_ADMIN" | "SUPER_ADMIN"> = {
   "/student": "STUDENT",
   "/admin": "HOSTEL_ADMIN",
   "/superadmin": "SUPER_ADMIN",
 };
 
+// Login routes are public within each zone — don't redirect them.
 const PUBLIC_PATHS = [
   "/",
   "/hostels",
@@ -15,15 +16,23 @@ const PUBLIC_PATHS = [
   "/superadmin/login",
 ];
 
+const LOGIN_PATHS: Record<string, string> = {
+  STUDENT: "/student/login",
+  HOSTEL_ADMIN: "/admin/login",
+  SUPER_ADMIN: "/superadmin/login",
+};
+
+const AUTH_COOKIE = "hh_auth";
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow all public paths
+  // Public paths pass through.
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return NextResponse.next();
   }
 
-  // Allow static/api routes
+  // Next internals, API, and files with extensions pass through.
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
@@ -32,39 +41,27 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check which protected zone we're in
-  const protectedPrefix = Object.keys(PROTECTED_ROUTES).find((prefix) =>
+  const protectedPrefix = Object.keys(PROTECTED_PREFIXES).find((prefix) =>
     pathname.startsWith(prefix)
   );
-
   if (!protectedPrefix) {
     return NextResponse.next();
   }
 
-  // For client-side navigation, token lives in localStorage (not cookies).
-  // We check for a custom header that the frontend sets on navigations,
-  // or fall back to redirecting to login — the auth context handles the rest.
-  // 
-  // Note: true cookie-based auth would go here in production.
-  // For now, middleware just redirects unauthenticated-looking requests to login.
-  const roleRequired = PROTECTED_ROUTES[protectedPrefix];
+  // We only check *presence* of the auth cookie here. Role enforcement happens
+  // client-side in <AuthGuard> once the user is hydrated from /auth/me/.
+  // This avoids decoding JWTs at the edge and still blocks unauth users.
+  const hasAuth = request.cookies.get(AUTH_COOKIE)?.value === "1";
+  if (hasAuth) {
+    return NextResponse.next();
+  }
 
-  // Build the login URL based on which zone is being accessed
-  const loginPaths: Record<string, string> = {
-    STUDENT: "/student/login",
-    HOSTEL_ADMIN: "/admin/login",
-    SUPER_ADMIN: "/superadmin/login",
-  };
-
-  const loginPath = loginPaths[roleRequired];
-  const loginUrl = new URL(loginPath, request.url);
+  const roleRequired = PROTECTED_PREFIXES[protectedPrefix];
+  const loginUrl = new URL(LOGIN_PATHS[roleRequired], request.url);
   loginUrl.searchParams.set("next", pathname);
-
   return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|public).*)"],
 };

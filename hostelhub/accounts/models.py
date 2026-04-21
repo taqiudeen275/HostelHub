@@ -1,11 +1,17 @@
 """Accounts models: User, StudentProfile, HostelAdminProfile, OTPCode."""
+import io
 import uuid
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.files.base import ContentFile
 from django.db import models
 from django.utils import timezone
+from PIL import Image
 
 from .managers import UserManager
+
+PROFILE_PHOTO_MAX_DIM = 512  # longest edge, pixels
+PROFILE_PHOTO_JPEG_QUALITY = 85
 
 
 class UserRole(models.TextChoices):
@@ -110,6 +116,29 @@ class StudentProfile(models.Model):
 
     def __str__(self):
         return f"StudentProfile({self.user.phone})"
+
+    def save(self, *args, **kwargs):
+        if self.profile_photo and not getattr(self.profile_photo, "_hh_resized", False):
+            self._resize_profile_photo()
+        super().save(*args, **kwargs)
+
+    def _resize_profile_photo(self):
+        try:
+            img = Image.open(self.profile_photo)
+        except Exception:
+            return
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        img.thumbnail(
+            (PROFILE_PHOTO_MAX_DIM, PROFILE_PHOTO_MAX_DIM), Image.Resampling.LANCZOS
+        )
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=PROFILE_PHOTO_JPEG_QUALITY, optimize=True)
+        name = self.profile_photo.name.rsplit(".", 1)[0] + ".jpg"
+        new_file = ContentFile(buffer.getvalue())
+        new_file._hh_resized = True
+        self.profile_photo.save(name, new_file, save=False)
+        self.profile_photo._hh_resized = True
 
 
 class HostelAdminProfile(models.Model):

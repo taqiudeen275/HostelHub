@@ -59,4 +59,5 @@ env/
 staticfiles/
 .venv
 .env
-.env.local
+.env.local'
+.claude

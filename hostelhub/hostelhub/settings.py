@@ -149,8 +149,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
+from corsheaders.defaults import default_headers  # noqa: E402
+
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
+# Custom headers used by the frontend. `X-HMS-Registration-Role` carries the
+# role choice on first OTP verification (PRD §8.1).
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-hms-registration-role",
+]
 
 # ---------------------------------------------------------------------------
 # Django REST Framework
