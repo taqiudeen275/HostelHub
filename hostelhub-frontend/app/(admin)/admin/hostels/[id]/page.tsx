@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, DragEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { adminHostelsApi, adminVariantsApi, Hostel, HostelMedia, RoomVariant } from "@/lib/api";
 import { toast } from "sonner";
@@ -18,9 +18,11 @@ export default function ManageHostelPage() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reorder State
+  // Drag-to-reorder state
   const [mediaItems, setMediaItems] = useState<HostelMedia[]>([]);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  // Drag-to-upload state (GAP-M2-05)
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Variant State
   const [variants, setVariants] = useState<RoomVariant[]>([]);
@@ -56,10 +58,20 @@ export default function ManageHostelPage() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    await doUploadFile(file);
+  };
 
+  const handleDropFile = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) doUploadFile(file);
+  };
+
+  const doUploadFile = async (file: File) => {
     const isVideo = file.type.startsWith('video/');
     const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
-    
+
     if (file.size > maxSize) {
       toast.error(`File too large. Max size is ${isVideo ? '50MB' : '10MB'}.`);
       return;
@@ -198,9 +210,14 @@ export default function ManageHostelPage() {
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h2 className="text-xl font-semibold mb-4">Media Gallery</h2>
             
-            <div 
-              className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors mb-8 ${isUploading ? 'bg-indigo-50 border-indigo-300' : 'hover:bg-gray-50'}`}
+            <div
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all mb-8 cursor-pointer ${
+                isDragOver ? 'border-indigo-500 bg-indigo-50 scale-[1.01]' : isUploading ? 'bg-indigo-50 border-indigo-300' : 'hover:bg-gray-50 border-gray-200'
+              }`}
               onClick={() => !isUploading && fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); if (!isUploading) setIsDragOver(true); }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={handleDropFile}
             >
               <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*,video/*" className="hidden" />
               {isUploading ? (

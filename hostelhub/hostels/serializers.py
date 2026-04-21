@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from .models import Amenity, Hostel, HostelMedia, MediaType, RoomVariant, Room
+from .models import Amenity, Hostel, HostelMedia, MediaType, RoomVariant, Room, RoomVariantMedia
 
 class AmenitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,6 +13,13 @@ class HostelMediaSerializer(serializers.ModelSerializer):
         fields = ['id', 'type', 'file', 'thumbnail', 'medium', 'caption', 'display_order', 'created_at']
         read_only_fields = ['id', 'type', 'thumbnail', 'medium', 'created_at']
 
+class RoomVariantMediaSerializer(serializers.ModelSerializer):
+    """Serializer for per-variant photos/videos (FR-4.2)."""
+    class Meta:
+        model = RoomVariantMedia
+        fields = ['id', 'type', 'file', 'thumbnail', 'medium', 'caption', 'duration_seconds', 'display_order', 'created_at']
+        read_only_fields = ['id', 'type', 'thumbnail', 'medium', 'duration_seconds', 'created_at']
+
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
@@ -21,15 +28,21 @@ class RoomSerializer(serializers.ModelSerializer):
 
 class RoomBulkCreateSerializer(serializers.Serializer):
     labels = serializers.ListField(
-        child=serializers.CharField(max_length=50)
+        child=serializers.CharField(max_length=50),
+        min_length=1,
     )
 
 class RoomVariantSerializer(serializers.ModelSerializer):
     rooms = RoomSerializer(many=True, read_only=True)
-    
+    media = RoomVariantMediaSerializer(many=True, read_only=True)
+
     class Meta:
         model = RoomVariant
-        fields = ['id', 'hostel', 'name', 'description', 'total_price', 'min_occupancy', 'max_occupancy', 'features', 'rooms', 'created_at']
+        fields = [
+            'id', 'hostel', 'name', 'description', 'total_price',
+            'min_occupancy', 'max_occupancy', 'features',
+            'rooms', 'media', 'created_at'
+        ]
         read_only_fields = ['id', 'hostel', 'created_at']
 
     def validate(self, data):
@@ -39,13 +52,13 @@ class RoomVariantSerializer(serializers.ModelSerializer):
 
         if min_occ < 1:
             raise ValidationError({"min_occupancy": "Minimum occupancy must be at least 1."})
-        
+
         if max_occ is not None and max_occ < min_occ:
             raise ValidationError({"max_occupancy": "Maximum occupancy cannot be less than minimum occupancy."})
 
         if price is not None and price <= 0:
             raise ValidationError({"total_price": "Total price must be greater than 0."})
-            
+
         return data
 
 class HostelSerializer(serializers.ModelSerializer):
@@ -53,27 +66,32 @@ class HostelSerializer(serializers.ModelSerializer):
     media = HostelMediaSerializer(many=True, read_only=True)
     variants = RoomVariantSerializer(many=True, read_only=True)
     amenity_ids = serializers.PrimaryKeyRelatedField(
-        queryset=Amenity.objects.all(), 
-        source='amenities', 
-        many=True, 
+        queryset=Amenity.objects.all(),
+        source='amenities',
+        many=True,
         write_only=True,
         required=False
     )
-    
+    photo_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Hostel
         fields = [
-            'id', 'owner', 'name', 'slug', 'description', 
-            'address_text', 'latitude', 'longitude', 
-            'gender_policy', 'owner_contact_phone', 
+            'id', 'owner', 'name', 'slug', 'description',
+            'address_text', 'latitude', 'longitude',
+            'gender_policy', 'owner_contact_phone',
             'owner_contact_whatsapp', 'status', 'rejection_reason',
             'created_by_super_admin', 'amenities', 'amenity_ids', 'media',
+            'variants', 'photo_count',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'id', 'owner', 'slug', 'status', 'rejection_reason', 
-            'created_by_super_admin', 'created_at', 'updated_at'
+            'id', 'owner', 'slug', 'status', 'rejection_reason',
+            'created_by_super_admin', 'photo_count', 'created_at', 'updated_at'
         ]
+
+    def get_photo_count(self, obj):
+        return obj.media.filter(type='PHOTO').count()
 
     def create(self, validated_data):
         amenities = validated_data.pop('amenities', [])

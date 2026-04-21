@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { adminHostelsApi, adminVariantsApi, Amenity, HostelMedia, RoomVariant } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, ArrowRight, Save, Check, UploadCloud, GripVertical, Plus } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Check, UploadCloud, Plus } from "lucide-react";
 import Link from "next/link";
 
 export default function CreateHostelPage() {
@@ -30,6 +30,7 @@ export default function CreateHostelPage() {
   // Step 3: Media
   const [mediaList, setMediaList] = useState<HostelMedia[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 4: Variants
@@ -80,16 +81,14 @@ export default function CreateHostelPage() {
   };
 
   // --- Step 3 Media Handlers ---
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !hostelId) return;
-
+  const doUpload = async (file: File) => {
+    if (!hostelId) return;
     setIsSubmitting(true);
     try {
       const newMedia = await adminHostelsApi.uploadMedia(hostelId, file, "", (ev) => {
         if (ev.lengthComputable) setUploadProgress(Math.round((ev.loaded * 100) / ev.total));
       });
-      setMediaList([...mediaList, newMedia]);
+      setMediaList(prev => [...prev, newMedia]);
       toast.success("Uploaded!");
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
@@ -98,6 +97,18 @@ export default function CreateHostelPage() {
       setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) doUpload(file);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) doUpload(file);
   };
 
   const handleCreateVariant = async (e: React.FormEvent) => {
@@ -210,26 +221,62 @@ export default function CreateHostelPage() {
           </div>
         )}
 
-        {/* Step 3: Photos */}
+        {/* Step 3: Photos — drag-and-drop zone (GAP-M2-05) */}
         {step === 3 && (
           <div className="space-y-6 animate-in fade-in">
             <h2 className="text-xl font-semibold border-b pb-2">Hostel Gallery</h2>
-            <div className="border-2 border-dashed rounded-xl p-8 text-center" onClick={() => !isSubmitting && fileInputRef.current?.click()}>
+            <p className="text-sm text-muted-foreground">Upload at least <strong>3 photos</strong>. Drag files here or click to browse.</p>
+            <div
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
+                isDragOver ? 'border-indigo-500 bg-indigo-50 scale-[1.01]' : 'border-gray-200 hover:bg-gray-50'
+              } ${isSubmitting ? 'pointer-events-none opacity-70' : ''}`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={handleDrop}
+            >
               <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" />
               {isSubmitting ? (
-                <div>Uploading... {uploadProgress}%</div>
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-7 h-7 animate-spin text-indigo-600" />
+                  <span className="text-sm font-medium text-indigo-700">Uploading... {uploadProgress}%</span>
+                  <div className="w-full max-w-xs h-1.5 bg-gray-200 rounded-full">
+                    <div className="h-1.5 bg-indigo-600 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                </div>
               ) : (
-                <div className="cursor-pointer text-indigo-600 flex flex-col items-center"><UploadCloud className="w-8 h-8 mb-2" /> Click to upload Media</div>
+                <div className="flex flex-col items-center text-indigo-600">
+                  <UploadCloud className="w-8 h-8 mb-2" />
+                  <span className="font-medium">{isDragOver ? 'Drop to upload' : 'Drag & drop or click to upload'}</span>
+                  <span className="text-xs text-muted-foreground mt-1">Images (max 10MB) · Videos (max 50MB)</span>
+                </div>
               )}
             </div>
-            <div className="flex gap-4 overflow-x-auto py-2">
-              {mediaList.map(m => (
-                <div key={m.id} className="w-32 h-32 flex-shrink-0 border rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden relative">
-                   {m.type === 'PHOTO' ? <img src={m.thumbnail || m.file} className="w-full h-full object-cover" /> : <span>Video</span>}
-                </div>
-              ))}
+            {mediaList.length > 0 && (
+              <div className="flex gap-3 overflow-x-auto py-2">
+                {mediaList.map(m => (
+                  <div key={m.id} className="w-28 h-28 flex-shrink-0 border rounded-lg bg-gray-100 overflow-hidden">
+                    {m.type === 'PHOTO'
+                      ? <img src={m.thumbnail || m.file} className="w-full h-full object-cover" alt="" />
+                      : <div className="w-full h-full flex items-center justify-center text-xs text-white bg-gray-700">Video</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-4">
+              <span className="text-sm text-muted-foreground">
+                {mediaList.filter(m=>m.type==='PHOTO').length}/3 required photos
+                {mediaList.filter(m=>m.type==='PHOTO').length < 3 &&
+                  <span className="text-amber-600 ml-1">({3 - mediaList.filter(m=>m.type==='PHOTO').length} more needed)</span>}
+              </span>
+              <button
+                onClick={() => setStep(4)}
+                disabled={mediaList.filter(m=>m.type==='PHOTO').length < 3}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-6 h-10 rounded-md disabled:opacity-50"
+              >
+                Next Step <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
-            <div className="flex justify-end pt-4"><button onClick={() => setStep(4)} className="flex items-center gap-2 bg-indigo-600 text-white px-6 h-10 rounded-md pointer">Next Step <ArrowRight className="w-4 h-4" /></button></div>
           </div>
         )}
 
@@ -286,19 +333,44 @@ export default function CreateHostelPage() {
           </div>
         )}
 
-        {/* Step 6: Review */}
+        {/* Step 6: Review & Submit (GAP-M2-11) */}
         {step === 6 && (
-          <div className="text-center space-y-6 py-12 animate-in fade-in">
-             <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
-                <Check className="w-8 h-8" />
-             </div>
-             <div>
-                <h2 className="text-2xl font-bold">Hostel Initialized!</h2>
-                <p className="text-muted-foreground mt-2">Your hostel is currently Pending Approval.<br/>You can manage rooms and media from the main dashboard.</p>
-             </div>
-             <Link href="/admin/hostels" className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 h-10 px-6 rounded-md font-medium transition-colors">
-                Go to Dashboard
-             </Link>
+          <div className="text-center space-y-6 py-10 animate-in fade-in">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
+              <Check className="w-8 h-8" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold">Review & Submit</h2>
+              <p className="text-muted-foreground mt-2">Double-check your setup, then submit for Super Admin approval.</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl border p-5 text-left space-y-2 text-sm">
+              <p><span className="font-semibold">Hostel:</span> {name}</p>
+              <p><span className="font-semibold">Photos uploaded:</span> {mediaList.filter(m=>m.type==='PHOTO').length}</p>
+              <p><span className="font-semibold">Room variants:</span> {variants.length}</p>
+            </div>
+            <button
+              disabled={isSubmitting}
+              onClick={async () => {
+                if (!hostelId) return;
+                setIsSubmitting(true);
+                try {
+                  await adminHostelsApi.submitForReview(hostelId);
+                  toast.success('Hostel submitted for review!');
+                } catch (err: any) {
+                  toast.error(err.message || 'Submission failed — ensure you have ≥3 photos and ≥1 variant.');
+                  setIsSubmitting(false);
+                  return;
+                }
+                setIsSubmitting(false);
+              }}
+              className="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 h-11 px-6 rounded-md font-medium transition-colors disabled:opacity-60"
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Submit for Approval
+            </button>
+            <Link href="/admin/hostels" className="block text-sm text-muted-foreground hover:underline">
+              Done — go to My Hostels
+            </Link>
           </div>
         )}
       </div>

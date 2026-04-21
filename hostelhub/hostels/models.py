@@ -133,3 +133,26 @@ class Room(models.Model):
 
     def __str__(self):
         return f"{self.label} ({self.variant.name})"
+
+
+class RoomVariantMedia(models.Model):
+    """
+    Per-variant media (FR-4.2): each Room Variant can have its own photos
+    (min 1 required) and an optional video walkthrough.
+    """
+    variant = models.ForeignKey(RoomVariant, on_delete=models.CASCADE, related_name="media")
+    type = models.CharField(max_length=10, choices=MediaType.choices)
+    file = models.FileField(upload_to="hostels/variants/media/")
+    thumbnail = models.ImageField(upload_to="hostels/variants/thumbs_400/", blank=True, null=True)
+    medium = models.ImageField(upload_to="hostels/variants/thumbs_1000/", blank=True, null=True)
+    caption = models.CharField(max_length=255, blank=True, null=True)
+    # Optional video duration in seconds (populated by ffprobe if available — GAP-M2-07)
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    display_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['display_order', 'created_at']
+
+    def __str__(self):
+        return f"{self.type} for variant {self.variant.name}"

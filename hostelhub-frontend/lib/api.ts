@@ -276,7 +276,17 @@ export const authApi = {
     api.patch<HostelAdminProfile>("/me/admin-profile/", data),
 };
 
-// ─── Hostels API ─────────────────────────────────────────────────────────────
+export interface RoomVariantMedia {
+  id: number;
+  type: "PHOTO" | "VIDEO";
+  file: string;
+  thumbnail: string | null;
+  medium: string | null;
+  caption: string | null;
+  duration_seconds: number | null;
+  display_order: number;
+  created_at: string;
+}
 
 export interface Amenity {
   id: number;
@@ -313,6 +323,7 @@ export interface RoomVariant {
   max_occupancy: number;
   features: string[];
   rooms: Room[];
+  media: RoomVariantMedia[];
   created_at: string;
 }
 
@@ -334,6 +345,7 @@ export interface Hostel {
   amenities: Amenity[];
   media: HostelMedia[];
   variants: RoomVariant[];
+  photo_count?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -355,25 +367,19 @@ export const adminHostelsApi = {
   get: (id: string) => api.get<Hostel>(`/admin/hostels/${id}/`),
   create: (data: CreateHostelPayload) => api.post<Hostel>("/admin/hostels/", data),
   update: (id: string, data: Partial<CreateHostelPayload>) => api.patch<Hostel>(`/admin/hostels/${id}/`, data),
+  submitForReview: (hostelId: string) => api.post<{ message: string }>(`/admin/hostels/${hostelId}/submit/`, {}),
   uploadMedia: (hostelId: string, file: File, caption?: string, onUploadProgress?: (progressEvent: any) => void) => {
     const formData = new FormData();
     formData.append("file", file);
     if (caption) formData.append("caption", caption);
-    
-    // We can't easily proxy FormData through our api wrapper due to axios/fetch differenes with boundary,
-    // so it's easier to use native fetch or a specialized api method.
-    // For M2, we will use native fetch directly with the token or XMLHttpRequest if we need upload progress.
     const token = tokenStorage.getAccess();
-    
     return new Promise<HostelMedia>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1"}/admin/hostels/${hostelId}/media/`, true);
       if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-      
       if (onUploadProgress) {
         xhr.upload.onprogress = (e) => onUploadProgress(e);
       }
-      
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(JSON.parse(xhr.response));
@@ -386,14 +392,35 @@ export const adminHostelsApi = {
     });
   },
   deleteMedia: (hostelId: string, mediaId: number) => api.delete<void>(`/admin/hostels/${hostelId}/media/${mediaId}/`),
-  reorderMedia: (hostelId: string, order: number[]) => api.patch<{message: string}>(`/admin/hostels/${hostelId}/media/reorder/`, { order }),
+  reorderMedia: (hostelId: string, order: number[]) => api.patch<{ message: string }>(`/admin/hostels/${hostelId}/media/reorder/`, { order }),
   createVariant: (hostelId: string, data: Partial<RoomVariant>) => api.post<RoomVariant>(`/admin/hostels/${hostelId}/variants/`, data),
   getAmenities: () => api.get<Amenity[]>("/amenities/"),
 };
 
 export const adminVariantsApi = {
-  createRoomsBulk: (variantId: string, labels: string[]) => api.post<{message: string}>(`/admin/variants/${variantId}/rooms/bulk/`, { labels }),
+  createRoomsBulk: (variantId: string, labels: string[]) => api.post<{ message: string }>(`/admin/variants/${variantId}/rooms/bulk/`, { labels }),
+  uploadMedia: (variantId: string, file: File, caption?: string, onUploadProgress?: (progressEvent: any) => void) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (caption) formData.append("caption", caption);
+    const token = tokenStorage.getAccess();
+    return new Promise<RoomVariantMedia>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1"}/admin/variants/${variantId}/media/`, true);
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      if (onUploadProgress) {
+        xhr.upload.onprogress = (e) => onUploadProgress(e);
+      }
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.response));
+        } else {
+          reject(new Error(JSON.parse(xhr.response)?.error || "Upload failed"));
+        }
+      };
+      xhr.onerror = () => reject(new Error("Network Error"));
+      xhr.send(formData);
+    });
+  },
+  deleteMedia: (variantId: string, mediaId: number) => api.delete<void>(`/admin/variants/${variantId}/media/${mediaId}/`),
 };
-
-
-

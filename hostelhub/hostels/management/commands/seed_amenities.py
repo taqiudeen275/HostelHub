@@ -15,6 +15,9 @@ AMENITIES = [
     {"name": "Cleaning Service", "icon": "sparkles"},
     {"name": "Laundry", "icon": "shirt"},
     {"name": "Parking", "icon": "car"},
+    {"name": "Balcony / Veranda", "icon": "home"},
+    {"name": "Hot Water", "icon": "flame"},
+    {"name": "Ceiling Fan", "icon": "fan"},
 ]
 
 class Command(BaseCommand):
