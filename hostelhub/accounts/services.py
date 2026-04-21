@@ -3,8 +3,7 @@ Accounts services — phone normalization, OTP lifecycle, user creation.
 This module is the single source of truth for auth business logic.
 """
 import hashlib
-import random
-import string
+import secrets
 from datetime import timedelta
 
 import phonenumbers
@@ -50,8 +49,8 @@ def normalize_phone(raw: str, country_code: str = "GH") -> str:
 # ---------------------------------------------------------------------------
 
 def generate_otp() -> str:
-    """Generate a cryptographically random 6-digit OTP code."""
-    return "".join(random.choices(string.digits, k=6))
+    """Generate a cryptographically secure random 6-digit OTP code."""
+    return "".join(str(secrets.randbelow(10)) for _ in range(6))
 
 
 def hash_otp(code: str) -> str:
@@ -73,19 +72,38 @@ def create_otp_record(phone: str) -> tuple:
     Create a new OTPCode record for the given phone number.
     Returns (otp_code_plaintext, OTPCode_instance).
 
-    Any existing unconsumed OTP for this phone is invalidated by expiry being
-    overwritten; we simply create a new record.
+    Enforces a server-side resend cooldown (OTP_RESEND_COOLDOWN_SECONDS, default 60s).
+    Raises ValueError if a recent unconsumed OTP is still within the cooldown window.
     """
     from .models import OTPCode
 
+    cooldown = getattr(settings, "OTP_RESEND_COOLDOWN_SECONDS", 60)
+    expiry_seconds = getattr(settings, "OTP_EXPIRY_SECONDS", 300)
+    now = timezone.now()
+
+    # Check if an unconsumed OTP was issued within the cooldown window
+    recent_otp = (
+        OTPCode.objects
+        .filter(phone=phone, consumed_at__isnull=True)
+        .order_by("-created_at")
+        .first()
+    )
+    if recent_otp and not recent_otp.is_expired:
+        elapsed = (now - recent_otp.created_at).total_seconds()
+        remaining = cooldown - elapsed
+        if remaining > 0:
+            raise ValueError(
+                f"Please wait {int(remaining) + 1} seconds before requesting a new code.",
+                int(remaining) + 1,   # retry_after value for the view
+            )
+
     code = generate_otp()
     code_hash = hash_otp(code)
-    expiry_seconds = getattr(settings, "OTP_EXPIRY_SECONDS", 300)
 
     otp = OTPCode.objects.create(
         phone=phone,
         code_hash=code_hash,
-        expires_at=timezone.now() + timedelta(seconds=expiry_seconds),
+        expires_at=now + timedelta(seconds=expiry_seconds),
     )
     return code, otp
 

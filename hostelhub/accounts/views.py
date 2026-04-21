@@ -60,7 +60,17 @@ class OTPRequestView(APIView):
         serializer.is_valid(raise_exception=True)
 
         phone = serializer.validated_data["phone"]
-        code, otp_record = create_otp_record(phone)
+
+        try:
+            code, otp_record = create_otp_record(phone)
+        except ValueError as exc:
+            # Cooldown window: args = (message, retry_after_seconds)
+            msg = exc.args[0]
+            retry_after = exc.args[1] if len(exc.args) > 1 else 60
+            return Response(
+                {"error": msg, "retry_after_seconds": retry_after},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
 
         # Send OTP via configured adapter (console in dev, Arkesel in prod)
         result = send_otp_sms(phone, code)

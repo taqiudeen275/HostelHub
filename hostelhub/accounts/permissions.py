@@ -59,3 +59,8 @@ class IsOwner(BasePermission):
         owner_field = getattr(view, "owner_field", "owner")
         owner = getattr(obj, owner_field, None)
         return owner == request.user
+
+
+# Alias for spec traceability (TIMELINE.md Week 3 names this explicitly).
+# Used on Hostel-scoped views to signal intent clearly.
+IsOwnerOfHostel = IsOwner

@@ -66,10 +66,14 @@ function AdminLoginForm() {
     try {
       const res = await authApi.verifyOtp(phone, code, "HOSTEL_ADMIN");
       login(res.tokens, res.user);
-      
-      toast.success("Welcome back!");
-      router.push(nextPath);
-      
+
+      if (res.is_new_user || !res.user.is_onboarding_complete) {
+        toast.success(res.is_new_user ? "Account created — let's finish your profile" : "Let's finish your profile");
+        router.push("/admin/onboarding");
+      } else {
+        toast.success("Welcome back!");
+        router.push(nextPath);
+      }
     } catch (err: any) {
       setError(err.message || "Invalid code");
       setOtp("");

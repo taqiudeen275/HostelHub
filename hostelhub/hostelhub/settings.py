@@ -209,8 +209,18 @@ SIMPLE_JWT = {
 # SMS / Notifications
 # ---------------------------------------------------------------------------
 SMS_BACKEND = env("SMS_BACKEND")   # "console" or "arkesel"
+
+# Arkesel SMS provider config
+# ↓ Flip to "arkesel" in .env to send real SMS
 ARKESEL_API_KEY = env("ARKESEL_API_KEY", default="")
-ARKESEL_SENDER_ID = env("ARKESEL_SENDER_ID", default="HostelHubu")
+ARKESEL_SENDER_ID = env("ARKESEL_SENDER_ID", default="HostelHub")
+# Set True in staging to hit real Arkesel API but not deliver to real handsets
+ARKESEL_USE_SANDBOX = env.bool("ARKESEL_USE_SANDBOX", default=False)
+# Optional: Arkesel will POST delivery reports to this URL
+ARKESEL_CALLBACK_URL = env("ARKESEL_CALLBACK_URL", default="")
+# SMS send retry policy
+ARKESEL_MAX_RETRIES = env.int("ARKESEL_MAX_RETRIES", default=3)
+ARKESEL_TIMEOUT = env.int("ARKESEL_TIMEOUT", default=10)
 
 # ---------------------------------------------------------------------------
 # Paystack
