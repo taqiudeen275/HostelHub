@@ -34,3 +34,29 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Python / MyPy / Pytest
+.pytest_cache/
+.mypy_cache/
+.tox/
+
+# Collectstatic
+staticfiles/
+.venv
+.env
+.env.local
