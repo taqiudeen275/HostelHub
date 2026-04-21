@@ -386,6 +386,7 @@ export const adminHostelsApi = {
     });
   },
   deleteMedia: (hostelId: string, mediaId: number) => api.delete<void>(`/admin/hostels/${hostelId}/media/${mediaId}/`),
+  reorderMedia: (hostelId: string, order: number[]) => api.patch<{message: string}>(`/admin/hostels/${hostelId}/media/reorder/`, { order }),
   createVariant: (hostelId: string, data: Partial<RoomVariant>) => api.post<RoomVariant>(`/admin/hostels/${hostelId}/variants/`, data),
   getAmenities: () => api.get<Amenity[]>("/amenities/"),
 };

@@ -75,7 +75,6 @@ class AdminHostelViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], url_path='media', url_name='media')
-
     def upload_media(self, request, pk=None):
         hostel = self.get_object()
         file = request.data.get('file')
@@ -84,9 +83,7 @@ class AdminHostelViewSet(viewsets.ModelViewSet):
         if not file:
             return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Basic server-side validation
         mime_type = file.content_type
-        
         if mime_type.startswith('image/'):
             media_type = MediaType.PHOTO
             if file.size > 10 * 1024 * 1024:
@@ -98,7 +95,6 @@ class AdminHostelViewSet(viewsets.ModelViewSet):
         else:
             return Response({"error": "Unsupported file type. Please upload images or videos."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create media record
         media_record = HostelMedia(
             hostel=hostel,
             type=media_type,
@@ -106,32 +102,49 @@ class AdminHostelViewSet(viewsets.ModelViewSet):
             caption=caption
         )
 
-        # Generate thumbs if photo
         if media_type == MediaType.PHOTO:
             thumb_400, thumb_1000 = generate_thumbnails(file)
             if thumb_400 and thumb_1000:
                 media_record.thumbnail = thumb_400
                 media_record.medium = thumb_1000
                 
+        # Set display order to end
+        last_media = hostel.media.order_by('-display_order').first()
+        media_record.display_order = (last_media.display_order + 1) if last_media else 0
         media_record.save()
         
         serializer = HostelMediaSerializer(media_record)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['patch'], url_path='media/reorder', url_name='reorder_media')
+    def reorder_media(self, request, pk=None):
+        hostel = self.get_object()
+        ordered_ids = request.data.get('order', [])
+        
+        if not isinstance(ordered_ids, list):
+            return Response({"error": "Expected an array of media IDs."}, status=status.HTTP_400_BAD_REQUEST)
+
+        media_dict = {m.id: m for m in hostel.media.all()}
+        
+        for idx, media_id in enumerate(ordered_ids):
+            media = media_dict.get(int(media_id))
+            if media:
+                media.display_order = idx
+                media.save(update_fields=['display_order'])
+                
+        return Response({"message": "Media reordered successfully."})
 
     @action(detail=True, methods=['delete'], url_path='media/(?P<media_pk>[^/.]+)', url_name='delete_media')
     def delete_media(self, request, pk=None, media_pk=None):
         hostel = self.get_object()
         try:
             media_record = HostelMedia.objects.get(id=media_pk, hostel=hostel)
-            
-            # Delete files from storage
             if media_record.file:
                 media_record.file.delete(save=False)
             if media_record.thumbnail:
                 media_record.thumbnail.delete(save=False)
             if media_record.medium:
                 media_record.medium.delete(save=False)
-                
             media_record.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except HostelMedia.DoesNotExist:
