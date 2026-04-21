@@ -170,7 +170,7 @@ class TestDisplayOrderAndReorder(TestCase):
         # Reverse the order
         new_order = [m3["id"], m2["id"], m1["id"]]
         res = self.client.patch(
-            f"/api/v1/admin/hostels/{self.hostel.id}/media/reorder/",
+            f"/api/v1/admin/hostels/{self.hostel.id}/media-reorder/",
             {"order": new_order},
             format="json",
         )

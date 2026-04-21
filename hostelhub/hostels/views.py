@@ -189,7 +189,7 @@ class AdminHostelViewSet(viewsets.ModelViewSet):
     owner_field = 'owner'
 
     def get_queryset(self):
-        return Hostel.objects.filter(owner=self.request.user)
+        return Hostel.objects.filter(owner=self.request.user).order_by('-created_at')
 
     def perform_create(self, serializer):
         # New hostels start as DRAFT so the admin can upload media first (GAP-M2-11).
