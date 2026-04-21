@@ -28,13 +28,13 @@ export default function MyHostelsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">My Hostels</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">My Hostels</h1>
         <Link
           href="/admin/hostels/create"
-          className="flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-md font-medium transition-colors"
+          className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 h-10 px-4 rounded-md text-sm font-medium transition-colors self-start"
         >
-          <PlusCircle className="h-5 w-5" />
+          <PlusCircle className="h-4 w-4" />
           Add Hostel
         </Link>
       </div>
@@ -74,11 +74,11 @@ export default function MyHostelsPage() {
               <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
                 {hostel.description}
               </p>
-              <div className="pt-4 border-t flex justify-between items-center text-sm">
-                <span className="text-muted-foreground truncate">{hostel.address_text}</span>
+              <div className="pt-4 border-t flex items-center justify-between text-sm gap-2">
+                <span className="text-muted-foreground truncate flex-1 min-w-0">{hostel.address_text}</span>
                 <Link
                   href={`/admin/hostels/${hostel.id}`}
-                  className="text-indigo-600 hover:text-indigo-800 font-medium"
+                  className="shrink-0 text-indigo-600 hover:text-indigo-800 font-medium"
                 >
                   Manage
                 </Link>

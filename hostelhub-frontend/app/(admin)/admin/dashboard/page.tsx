@@ -40,13 +40,13 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Hostel Admin Panel</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             Welcome back, {displayName}!
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -55,7 +55,7 @@ export default function AdminDashboardPage() {
         </div>
         <Link
           href="/admin/hostels/create"
-          className="inline-flex shrink-0 items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white h-10 px-4 rounded-md text-sm font-medium transition-colors"
+          className="inline-flex shrink-0 items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white h-10 px-4 rounded-md text-sm font-medium transition-colors self-start"
         >
           <Plus className="w-4 h-4" />
           Add Hostel
@@ -118,19 +118,19 @@ export default function AdminDashboardPage() {
               <Link
                 key={h.id}
                 href={`/admin/hostels/${h.id}`}
-                className="flex items-center justify-between py-4 hover:bg-gray-50 px-2 -mx-2 rounded-lg transition-colors group"
+                className="flex items-center justify-between py-4 hover:bg-gray-50 px-2 -mx-2 rounded-lg transition-colors group gap-3"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-indigo-600" />
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg bg-indigo-100 flex items-center justify-center">
+                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">{h.name}</p>
-                    <p className="text-xs text-muted-foreground">{h.address_text}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{h.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{h.address_text}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     h.status === "APPROVED" ? "bg-green-100 text-green-700" :
                     h.status === "PENDING"  ? "bg-amber-100 text-amber-700" :
                     h.status === "REJECTED" ? "bg-red-100 text-red-600" :
@@ -138,7 +138,7 @@ export default function AdminDashboardPage() {
                   }`}>
                     {h.status}
                   </span>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="w-4 h-4 text-muted-foreground hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </Link>
             ))}

@@ -27,3 +27,11 @@ urlpatterns = [
     path("me/privacy/", PrivacySettingsView.as_view(), name="privacy-settings"),
     path("me/admin-profile/", HostelAdminProfileView.as_view(), name="admin-profile"),
 ]
+
+from rest_framework.routers import DefaultRouter
+from .views import SuperAdminUserViewSet
+
+router = DefaultRouter()
+router.register(r'admin-users', SuperAdminUserViewSet, basename='admin-users')
+
+urlpatterns += router.urls

@@ -84,11 +84,30 @@ def _upload_media_to(*, file, caption: str = "") -> tuple:
 # ViewSets
 # ---------------------------------------------------------------------------
 
-class AmenityViewSet(viewsets.ReadOnlyModelViewSet):
-    """Publicly list available amenities."""
+class AmenityViewSet(viewsets.ModelViewSet):
+    """List available amenities, and allow Admins to dynamically create missing ones."""
     queryset = Amenity.objects.all().order_by('name')
     serializer_class = AmenitySerializer
-    permission_classes = [permissions.AllowAny]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.AllowAny()]
+        return [IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        # Case insensitive duplicate check
+        name = request.data.get('name', '').strip()
+        if not name:
+            return Response({"error": "Name is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Look for existing amenity (case insensitive)
+        existing = Amenity.objects.filter(name__iexact=name).first()
+        if existing:
+            return Response(self.get_serializer(existing).data, status=status.HTTP_200_OK)
+            
+        # Create new and return
+        new_amenity = Amenity.objects.create(name=name, icon='sparkles')
+        return Response(self.get_serializer(new_amenity).data, status=status.HTTP_201_CREATED)
 
 
 class AdminVariantViewSet(viewsets.ModelViewSet):
@@ -175,6 +194,180 @@ class AdminVariantViewSet(viewsets.ModelViewSet):
         except RoomVariantMedia.DoesNotExist:
             return Response({"error": "Media not found."}, status=status.HTTP_404_NOT_FOUND)
 
+from accounts.permissions import IsSuperAdmin
+from core.models import AuditLog, ActionType
+from django.contrib.contenttypes.models import ContentType
+
+class SuperAdminHostelViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Super Admin viewset for approving/rejecting hostels and viewing PENDING queue.
+    """
+    serializer_class = HostelSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    pagination_class = None
+
+    def get_queryset(self):
+        # By default only show PENDING hostels for the queue
+        status_filter = self.request.query_params.get('status', HostelStatus.PENDING)
+        return Hostel.objects.filter(status=status_filter).order_by('created_at')
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        hostel = self.get_object()
+        if hostel.status == HostelStatus.APPROVED:
+            return Response({"error": "Hostel already approved."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        hostel.status = HostelStatus.APPROVED
+        hostel.rejection_reason = None
+        hostel.save(update_fields=['status', 'rejection_reason'])
+
+        target_ct = ContentType.objects.get_for_model(Hostel)
+        AuditLog.objects.create(
+            actor=request.user,
+            action=ActionType.APPROVE,
+            target_content_type=target_ct,
+            target_object_id=hostel.id,
+            notes=f"Approved hostel {hostel.name}"
+        )
+
+        # GAP-M3-05: SMS stub — non-fatal
+        try:
+            from notifications.services import send_hostel_approval_sms
+            send_hostel_approval_sms(
+                phone=hostel.owner_contact_phone,
+                hostel_name=hostel.name,
+                approved=True,
+            )
+        except Exception:
+            pass
+
+        return Response({"message": "Hostel approved successfully."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        hostel = self.get_object()
+        reason = request.data.get('reason')
+        if not reason:
+            return Response({"error": "Rejection reason is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        hostel.status = HostelStatus.REJECTED
+        hostel.rejection_reason = reason
+        hostel.save(update_fields=['status', 'rejection_reason'])
+
+        target_ct = ContentType.objects.get_for_model(Hostel)
+        AuditLog.objects.create(
+            actor=request.user,
+            action=ActionType.REJECT,
+            target_content_type=target_ct,
+            target_object_id=hostel.id,
+            notes=f"Rejected hostel {hostel.name}. Reason: {reason}"
+        )
+
+        # GAP-M3-05: SMS stub — non-fatal, resolves in W12
+        try:
+            from notifications.services import send_hostel_approval_sms
+            send_hostel_approval_sms(
+                phone=hostel.owner_contact_phone,
+                hostel_name=hostel.name,
+                approved=False,
+                reason=reason,
+            )
+        except Exception:
+            pass
+
+        # GAP-M3-01: Fixed — was missing return, caused 500
+        return Response({"message": "Hostel rejected.", "reason": reason}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], url_path='create-on-behalf')
+    def create_on_behalf(self, request):
+        """GAP-M3-02: Accepts the full hostel form (all fields) plus owner phone."""
+        from accounts.models import User
+        from django.contrib.auth.hashers import make_password
+
+        phone = request.data.get('phone')
+        name = request.data.get('name')
+
+        if not phone or not name:
+            return Response({"error": "Phone and Hostel Name are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get or create the Hostel Admin account
+        user, _ = User.objects.get_or_create(
+            phone=phone,
+            defaults={'role': 'HOSTEL_ADMIN', 'is_active': True, 'password': make_password('12345')}
+        )
+        if user.role != 'HOSTEL_ADMIN':
+            return Response({"error": "That phone belongs to a non-admin account."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Build hostel from full payload
+        hostel_fields = {
+            'owner': user,
+            'name': name,
+            'description': request.data.get('description', ''),
+            'address_text': request.data.get('address_text', ''),
+            'gender_policy': request.data.get('gender_policy', 'MIXED'),
+            'owner_contact_phone': request.data.get('owner_contact_phone', phone),
+            'owner_contact_whatsapp': request.data.get('owner_contact_whatsapp', ''),
+            'status': HostelStatus.APPROVED,
+            'created_by_super_admin': True,
+        }
+        lat = request.data.get('latitude')
+        lng = request.data.get('longitude')
+        if lat:
+            hostel_fields['latitude'] = lat
+        if lng:
+            hostel_fields['longitude'] = lng
+
+        hostel = Hostel.objects.create(**hostel_fields)
+
+        amenity_ids = request.data.get('amenity_ids', [])
+        if amenity_ids:
+            hostel.amenities.set(Amenity.objects.filter(id__in=amenity_ids))
+
+        target_ct = ContentType.objects.get_for_model(Hostel)
+        AuditLog.objects.create(
+            actor=request.user,
+            action=ActionType.CREATE_ON_BEHALF,
+            target_content_type=target_ct,
+            target_object_id=hostel.id,
+            notes=f"Created hostel '{hostel.name}' on behalf of {phone}"
+        )
+
+        return Response(HostelSerializer(hostel).data, status=status.HTTP_201_CREATED)
+
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.permissions import AllowAny
+from .filters import PublicHostelFilter
+
+
+class PublicHostelViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public ViewSet for browsing APPROVED hostels (FR-5).
+
+    Supported query params:
+        ?gender_policy=MALE|FEMALE|MIXED
+        ?min_price=500 / ?max_price=3000
+        ?amenities=1&amenities=3  (multi-select)
+        ?search=kwame              (searches name, description, address)
+        ?ordering=created_at|-created_at  (newest/oldest)
+    """
+    serializer_class = HostelSerializer
+    permission_classes = [AllowAny]
+    lookup_field = 'slug'
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = PublicHostelFilter
+    search_fields = ['name', 'description', 'address_text']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        return (
+            Hostel.objects
+            .filter(status=HostelStatus.APPROVED)
+            .prefetch_related('media', 'variants__rooms', 'amenities')
+            .distinct()
+            .order_by('-created_at')
+        )
 
 class AdminHostelViewSet(viewsets.ModelViewSet):
     """

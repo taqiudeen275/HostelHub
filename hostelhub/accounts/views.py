@@ -362,3 +362,30 @@ class HostelAdminProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+from rest_framework import viewsets, permissions
+
+class IsSuperAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role == 'SUPER_ADMIN')
+
+from rest_framework import viewsets
+from .models import User
+
+class SuperAdminUserViewSet(viewsets.ModelViewSet):
+    """
+    Super Admin endpoint to manage all users.
+    GET /api/v1/accounts/admin-users/
+    """
+    permission_classes = [IsSuperAdmin]
+    serializer_class = UserSerializer
+    queryset = User.objects.all().order_by('-date_joined')
+
+    def destroy(self, request, *args, **kwargs):
+        """Soft delete by deactivating."""
+        user = self.get_object()
+        user.is_active = False
+        user.save()
+        from core.models import AuditLog, ActionType
+        AuditLog.objects.create(actor=request.user, action=ActionType.DEACTIVATE, notes=f"Deactivated user {user.email or user.phone}")
+        return Response(status=status.HTTP_204_NO_CONTENT)

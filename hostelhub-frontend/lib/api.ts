@@ -362,8 +362,18 @@ export interface CreateHostelPayload {
   amenity_ids: number[];
 }
 
+interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 export const adminHostelsApi = {
-  list: () => api.get<Hostel[]>("/admin/hostels/"),
+  list: () =>
+    api
+      .get<PaginatedResponse<Hostel> | Hostel[]>("/admin/hostels/")
+      .then((res) => (Array.isArray(res) ? res : res.results)),
   get: (id: string) => api.get<Hostel>(`/admin/hostels/${id}/`),
   create: (data: CreateHostelPayload) => api.post<Hostel>("/admin/hostels/", data),
   update: (id: string, data: Partial<CreateHostelPayload>) => api.patch<Hostel>(`/admin/hostels/${id}/`, data),
@@ -394,7 +404,11 @@ export const adminHostelsApi = {
   deleteMedia: (hostelId: string, mediaId: number) => api.delete<void>(`/admin/hostels/${hostelId}/media/${mediaId}/`),
   reorderMedia: (hostelId: string, order: number[]) => api.patch<{ message: string }>(`/admin/hostels/${hostelId}/media-reorder/`, { order }),
   createVariant: (hostelId: string, data: Partial<RoomVariant>) => api.post<RoomVariant>(`/admin/hostels/${hostelId}/variants/`, data),
-  getAmenities: () => api.get<Amenity[]>("/amenities/"),
+  submitForReview: (id: string) => api.post<{message: string}>(`/admin/hostels/${id}/submit/`),
+  getAmenities: () =>
+    api
+      .get<PaginatedResponse<Amenity> | Amenity[]>("/amenities/")
+      .then((res) => (Array.isArray(res) ? res : res.results)),
 };
 
 export const adminVariantsApi = {
@@ -423,4 +437,35 @@ export const adminVariantsApi = {
     });
   },
   deleteMedia: (variantId: string, mediaId: number) => api.delete<void>(`/admin/variants/${variantId}/media/${mediaId}/`),
+};
+
+// Super Admin APIs
+export const superAdminApi = {
+  getPendingHostels: () => api.get<Hostel[]>("/superadmin/hostels/?status=PENDING"),
+  approveHostel: (id: string) => api.post<{message: string}>(`/superadmin/hostels/${id}/approve/`),
+  rejectHostel: (id: string, reason: string) => api.post<{message: string}>(`/superadmin/hostels/${id}/reject/`, { reason }),
+  createOnBehalf: (data: {
+    phone: string;
+    name: string;
+    address_text?: string;
+    description?: string;
+    gender_policy?: string;
+    owner_contact_phone?: string;
+    owner_contact_whatsapp?: string;
+    latitude?: number;
+    longitude?: number;
+    amenity_ids?: number[];
+  }) => api.post<Hostel>(`/superadmin/hostels/create-on-behalf/`, data),
+  getUsers: () => api.get<any>("/admin-users/").then(res => res.results || res),
+  deactivateUser: (id: string) => api.delete<void>(`/admin-users/${id}/`),
+  getAuditLogs: () => api.get<any>("/audit/").then(res => res.results || res),
+};
+
+// Public APIs
+export const publicHostelsApi = {
+  list: (params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : "";
+    return api.get<{count: number, next: string | null, previous: string | null, results: Hostel[]}>(`/hostels/${qs ? `?${qs}` : ''}`);
+  },
+  get: (slug: string) => api.get<Hostel>(`/hostels/${slug}/`),
 };
