@@ -12,7 +12,7 @@ urlpatterns = [
     path("api/v1/", include([
         path("", include("core.urls")),
         path("", include("accounts.urls")),
-        path("hostels/", include("hostels.urls")),
+        path("", include("hostels.urls")),
         path("bookings/", include("bookings.urls")),
         path("payments/", include("payments.urls")),
     ])),

@@ -275,3 +275,124 @@ export const authApi = {
   updateAdminProfile: (data: Partial<HostelAdminProfile>) =>
     api.patch<HostelAdminProfile>("/me/admin-profile/", data),
 };
+
+// ─── Hostels API ─────────────────────────────────────────────────────────────
+
+export interface Amenity {
+  id: number;
+  name: string;
+  icon: string;
+}
+
+export interface HostelMedia {
+  id: number;
+  type: "PHOTO" | "VIDEO";
+  file: string;
+  thumbnail: string | null;
+  medium: string | null;
+  caption: string | null;
+  display_order: number;
+  created_at: string;
+}
+
+export interface Room {
+  id: string;
+  variant: string;
+  label: string;
+  locked_k: number | null;
+  status: "AVAILABLE" | "PARTIALLY_BOOKED" | "FULL" | "UNAVAILABLE";
+}
+
+export interface RoomVariant {
+  id: string;
+  hostel: string;
+  name: string;
+  description: string;
+  total_price: string;
+  min_occupancy: number;
+  max_occupancy: number;
+  features: string[];
+  rooms: Room[];
+  created_at: string;
+}
+
+export interface Hostel {
+  id: string;
+  owner?: string;
+  name: string;
+  slug?: string;
+  description: string;
+  address_text: string;
+  latitude: string | null;
+  longitude: string | null;
+  gender_policy: "MALE" | "FEMALE" | "MIXED";
+  owner_contact_phone: string;
+  owner_contact_whatsapp: string | null;
+  status?: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+  rejection_reason?: string;
+  created_by_super_admin?: boolean;
+  amenities: Amenity[];
+  media: HostelMedia[];
+  variants: RoomVariant[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateHostelPayload {
+  name: string;
+  description: string;
+  address_text: string;
+  latitude: string | null;
+  longitude: string | null;
+  gender_policy: "MALE" | "FEMALE" | "MIXED";
+  owner_contact_phone: string;
+  owner_contact_whatsapp: string | null;
+  amenity_ids: number[];
+}
+
+export const adminHostelsApi = {
+  list: () => api.get<Hostel[]>("/admin/hostels/"),
+  get: (id: string) => api.get<Hostel>(`/admin/hostels/${id}/`),
+  create: (data: CreateHostelPayload) => api.post<Hostel>("/admin/hostels/", data),
+  update: (id: string, data: Partial<CreateHostelPayload>) => api.patch<Hostel>(`/admin/hostels/${id}/`, data),
+  uploadMedia: (hostelId: string, file: File, caption?: string, onUploadProgress?: (progressEvent: any) => void) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (caption) formData.append("caption", caption);
+    
+    // We can't easily proxy FormData through our api wrapper due to axios/fetch differenes with boundary,
+    // so it's easier to use native fetch or a specialized api method.
+    // For M2, we will use native fetch directly with the token or XMLHttpRequest if we need upload progress.
+    const token = tokenStorage.getAccess();
+    
+    return new Promise<HostelMedia>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1"}/admin/hostels/${hostelId}/media/`, true);
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      
+      if (onUploadProgress) {
+        xhr.upload.onprogress = (e) => onUploadProgress(e);
+      }
+      
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.response));
+        } else {
+          reject(new Error(JSON.parse(xhr.response)?.error || "Upload failed"));
+        }
+      };
+      xhr.onerror = () => reject(new Error("Network Error"));
+      xhr.send(formData);
+    });
+  },
+  deleteMedia: (hostelId: string, mediaId: number) => api.delete<void>(`/admin/hostels/${hostelId}/media/${mediaId}/`),
+  createVariant: (hostelId: string, data: Partial<RoomVariant>) => api.post<RoomVariant>(`/admin/hostels/${hostelId}/variants/`, data),
+  getAmenities: () => api.get<Amenity[]>("/amenities/"),
+};
+
+export const adminVariantsApi = {
+  createRoomsBulk: (variantId: string, labels: string[]) => api.post<{message: string}>(`/admin/variants/${variantId}/rooms/bulk/`, { labels }),
+};
+
+
+
