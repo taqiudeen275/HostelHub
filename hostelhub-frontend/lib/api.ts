@@ -469,3 +469,109 @@ export const publicHostelsApi = {
   },
   get: (slug: string) => api.get<Hostel>(`/hostels/${slug}/`),
 };
+
+// ─── Bookings + payments (M4) ────────────────────────────────────────────────
+
+export type BookingStatus =
+  | "PENDING_PAYMENT"
+  | "CONFIRMED"
+  | "CHECKED_IN"
+  | "CHECKED_OUT"
+  | "CANCELLED"
+  | "EXPIRED"
+  | "REFUNDED";
+
+export type PaymentStatus = "INITIATED" | "SUCCESS" | "FAILED" | "REFUNDED";
+
+export interface PaymentBrief {
+  id: string;
+  paystack_reference: string;
+  amount: string;
+  status: PaymentStatus;
+  channel: string;
+  verified_at: string | null;
+}
+
+export interface BookingHostelBrief {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface BookingVariantBrief {
+  id: string;
+  name: string;
+  total_price: string;
+  min_occupancy: number;
+  max_occupancy: number;
+}
+
+export interface BookingRoomBrief {
+  id: string;
+  label: string;
+  locked_k: number | null;
+  status: "AVAILABLE" | "PARTIALLY_BOOKED" | "FULL" | "UNAVAILABLE";
+}
+
+export interface BookingStudentBrief {
+  id: string;
+  phone: string;
+  first_name: string;
+  last_name: string;
+}
+
+export interface Booking {
+  id: string;
+  status: BookingStatus;
+  chosen_occupancy_at_booking: number;
+  price_paid: string;
+  reservation_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+  student: BookingStudentBrief;
+  hostel: BookingHostelBrief;
+  variant: BookingVariantBrief;
+  room: BookingRoomBrief;
+  payments: PaymentBrief[];
+  latest_payment: PaymentBrief | null;
+}
+
+export interface BookingCreateResponse {
+  booking: Booking;
+  authorization_url: string;
+  payment_reference: string;
+}
+
+export interface Payment {
+  id: string;
+  booking_id: string;
+  paystack_reference: string;
+  amount: string;
+  currency: string;
+  channel: string;
+  status: PaymentStatus;
+  verified_at: string | null;
+  refunded_at: string | null;
+  refund_reason: string;
+  created_at: string;
+}
+
+export const bookingsApi = {
+  create: (payload: { room_id: string; chosen_occupancy: number }) =>
+    api.post<BookingCreateResponse>("/bookings/", payload),
+  list: (params?: Record<string, string>) => {
+    const qs = params ? new URLSearchParams(params).toString() : "";
+    return api.get<Booking[]>(`/bookings/${qs ? `?${qs}` : ""}`);
+  },
+  get: (id: string) => api.get<Booking>(`/bookings/${id}/`),
+  cancel: (id: string, reason?: string) =>
+    api.post<Booking>(`/bookings/${id}/cancel/`, { reason: reason ?? "" }),
+  checkIn: (id: string) => api.post<Booking>(`/bookings/${id}/check-in/`, {}),
+  checkOut: (id: string) => api.post<Booking>(`/bookings/${id}/check-out/`, {}),
+};
+
+export const paymentsApi = {
+  get: (id: string) => api.get<Payment>(`/payments/${id}/`),
+  refund: (id: string, reason: string, amount?: string) =>
+    api.post<Payment>(`/payments/${id}/refund/`, { reason, amount }),
+};

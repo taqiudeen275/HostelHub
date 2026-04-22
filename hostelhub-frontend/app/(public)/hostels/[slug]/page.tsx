@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
   Expand,
   ExternalLink,
@@ -241,14 +242,10 @@ export default function PublicHostelDetailPage() {
             ) : (
               <div className="space-y-3">
                 {hostel.variants.map((v) => (
-                  <VariantCard key={v.id} variant={v} />
+                  <VariantCard key={v.id} variant={v} hostelSlug={hostel.slug ?? slug} />
                 ))}
               </div>
             )}
-            <p className="text-xs text-gray-400 mt-3">
-              Booking and secure payment land in Milestone M4 — for now, contact
-              the owner to reserve.
-            </p>
           </section>
 
           {/* Amenities */}
@@ -513,10 +510,15 @@ function GalleryHero({
 
 function VariantCard({
   variant,
+  hostelSlug,
 }: {
   variant: Hostel["variants"][number];
+  hostelSlug: string;
 }) {
   const rooms = variant.rooms ?? [];
+  const canBook = rooms.some(
+    (r) => r.status === "AVAILABLE" || r.status === "PARTIALLY_BOOKED"
+  );
   const available = rooms.filter((r) => r.status === "AVAILABLE").length;
   const partial = rooms.filter((r) => r.status === "PARTIALLY_BOOKED").length;
   const full = rooms.filter((r) => r.status === "FULL").length;
@@ -591,6 +593,25 @@ function VariantCard({
             ))}
           </ul>
         )}
+
+        <div className="mt-5 flex items-center gap-3">
+          {canBook ? (
+            <Link
+              href={`/book/${hostelSlug}/${variant.id}`}
+              className="h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold inline-flex items-center gap-1.5 transition-colors"
+            >
+              Book a room
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          ) : (
+            <span className="h-10 px-4 rounded-lg bg-gray-100 text-gray-400 text-sm font-semibold inline-flex items-center">
+              Fully booked
+            </span>
+          )}
+          <span className="text-xs text-gray-500">
+            15-minute hold while you pay
+          </span>
+        </div>
       </div>
 
       {video && (
