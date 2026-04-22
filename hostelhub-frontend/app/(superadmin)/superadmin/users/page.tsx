@@ -63,10 +63,10 @@ export default function SuperAdminUsersPage() {
                   <table className="w-full text-sm text-left backdrop-blur-md">
                       <thead className="text-[10px] text-gray-500 uppercase tracking-widest bg-white/[0.02] border-b border-white/[0.08]">
                           <tr>
-                              <th className="px-6 py-5 font-bold">Identity Target</th>
-                              <th className="px-6 py-5 font-bold">Encrypted Contact</th>
-                              <th className="px-6 py-5 font-bold">Policy Role</th>
-                              <th className="px-6 py-5 font-bold">State</th>
+                              <th className="px-6 py-5 font-bold">User Full Name</th>
+                              <th className="px-6 py-5 font-bold">Contact Information</th>
+                              <th className="px-6 py-5 font-bold">System Role</th>
+                              <th className="px-6 py-5 font-bold">Status</th>
                               <th className="px-6 py-5 font-bold text-right">Actions</th>
                           </tr>
                       </thead>
@@ -82,8 +82,8 @@ export default function SuperAdminUsersPage() {
                                       <div className="text-gray-600 text-xs mt-0.5">{u.email || "No email"}</div>
                                   </td>
                                   <td className="px-6 py-4">
-                                      {u.role === 'SUPER_ADMIN' && <span className="inline-flex items-center gap-1 bg-red-500/10 border border-red-500/20 text-red-400 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest"><Shield className="w-3 h-3"/> SYS_ROOT</span>}
-                                      {u.role === 'HOSTEL_ADMIN' && <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest">OWNER_NODE</span>}
+                                      {u.role === 'SUPER_ADMIN' && <span className="inline-flex items-center gap-1 bg-red-500/10 border border-red-500/20 text-red-400 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest"><Shield className="w-3 h-3"/> SUPER ADMIN</span>}
+                                      {u.role === 'HOSTEL_ADMIN' && <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest">HOSTEL ADMIN</span>}
                                       {u.role === 'STUDENT' && <span className="inline-flex items-center gap-1 bg-white/[0.05] border border-white/[0.1] text-gray-300 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-widest">STUDENT</span>}
                                   </td>
                                   <td className="px-6 py-4">
@@ -96,7 +96,7 @@ export default function SuperAdminUsersPage() {
                                   <td className="px-6 py-4 text-right">
                                       {u.is_active && u.role !== 'SUPER_ADMIN' ? (
                                           <button onClick={() => deactivateUser(u.id, u.role)} className="bg-red-500/10 border border-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-500/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
-                                              Revoke
+                                              Deactivate
                                           </button>
                                       ) : (
                                           <span className="text-gray-600 text-[10px] uppercase font-bold tracking-widest">Locked</span>
@@ -107,7 +107,7 @@ export default function SuperAdminUsersPage() {
                       </tbody>
                   </table>
                   {users.length === 0 && (
-                      <div className="p-12 text-center text-gray-500 border-t border-white/[0.04]">No user footprints detected...</div>
+                      <div className="p-12 text-center text-gray-500 border-t border-white/[0.04]">No users found.</div>
                   )}
               </div>
           </div>

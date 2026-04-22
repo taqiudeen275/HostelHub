@@ -14,7 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import IsHostelAdmin, IsOwnerOfHostel
+from accounts.permissions import IsHostelAdmin, IsSuperAdminOrHostelAdmin, IsOwnerOfHostel
 from .media_processor import generate_thumbnails
 from .models import (
     Hostel, Amenity, HostelStatus, HostelMedia, MediaType,
@@ -119,9 +119,11 @@ class AdminVariantViewSet(viewsets.ModelViewSet):
     DELETE /api/v1/admin/variants/{id}/media/{media_pk}/  — GAP-M2-10
     """
     serializer_class = RoomVariantSerializer
-    permission_classes = [IsAuthenticated, IsHostelAdmin]
+    permission_classes = [IsAuthenticated, IsSuperAdminOrHostelAdmin]
 
     def get_queryset(self):
+        if self.request.user.role == 'SUPER_ADMIN':
+            return RoomVariant.objects.all()
         return RoomVariant.objects.filter(hostel__owner=self.request.user)
 
     @action(detail=True, methods=['post'], url_path='rooms/bulk', url_name='rooms_bulk')
@@ -207,9 +209,50 @@ class SuperAdminHostelViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        # By default only show PENDING hostels for the queue
         status_filter = self.request.query_params.get('status', HostelStatus.PENDING)
-        return Hostel.objects.filter(status=status_filter).order_by('created_at')
+        if status_filter.upper() == 'ALL':
+            return Hostel.objects.all().order_by('-created_at')
+        return Hostel.objects.filter(status=status_filter).order_by('-created_at')
+
+    @action(detail=True, methods=['post'])
+    def reassign(self, request, pk=None):
+        hostel = self.get_object()
+        
+        # Security constraints
+        if not hostel.created_by_super_admin:
+            return Response({"error": "You can only reassign hostels created through the Super Admin portal."}, status=status.HTTP_403_FORBIDDEN)
+            
+        if hostel.owner != request.user:
+            return Response({"error": "This hostel has already been transferred to another owner. One-way lock engaged."}, status=status.HTTP_403_FORBIDDEN)
+            
+        target_phone = request.data.get('phone')
+        
+        if not target_phone:
+            return Response({"error": "Target phone number is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from accounts.models import User
+        
+        try:
+            target_user = User.objects.get(phone=target_phone)
+        except User.DoesNotExist:
+            return Response({"error": f"No user found with phone {target_phone}."}, status=status.HTTP_404_NOT_FOUND)
+            
+        if target_user.role != 'HOSTEL_ADMIN':
+            return Response({"error": "Target user must have the HOSTEL_ADMIN role."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        old_owner = hostel.owner
+        hostel.owner = target_user
+        hostel.save(update_fields=['owner'])
+        
+        target_ct = ContentType.objects.get_for_model(Hostel)
+        AuditLog.objects.create(
+            actor=request.user,
+            action=ActionType.REASSIGN,
+            target_content_type=target_ct,
+            target_object_id=hostel.id,
+            notes=f"Reassigned hostel '{hostel.name}' from {old_owner.phone if old_owner else 'None'} to {target_user.phone}"
+        )
+        return Response({"message": f"Hostel successfully reassigned to {target_user.phone}"}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
@@ -280,32 +323,18 @@ class SuperAdminHostelViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='create-on-behalf')
     def create_on_behalf(self, request):
-        """GAP-M3-02: Accepts the full hostel form (all fields) plus owner phone."""
-        from accounts.models import User
-        from django.contrib.auth.hashers import make_password
-
-        phone = request.data.get('phone')
         name = request.data.get('name')
 
-        if not phone or not name:
-            return Response({"error": "Phone and Hostel Name are required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not name:
+            return Response({"error": "Hostel Name is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get or create the Hostel Admin account
-        user, _ = User.objects.get_or_create(
-            phone=phone,
-            defaults={'role': 'HOSTEL_ADMIN', 'is_active': True, 'password': make_password('12345')}
-        )
-        if user.role != 'HOSTEL_ADMIN':
-            return Response({"error": "That phone belongs to a non-admin account."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Build hostel from full payload
         hostel_fields = {
-            'owner': user,
+            'owner': request.user,
             'name': name,
             'description': request.data.get('description', ''),
             'address_text': request.data.get('address_text', ''),
             'gender_policy': request.data.get('gender_policy', 'MIXED'),
-            'owner_contact_phone': request.data.get('owner_contact_phone', phone),
+            'owner_contact_phone': request.data.get('owner_contact_phone', ''),
             'owner_contact_whatsapp': request.data.get('owner_contact_whatsapp', ''),
             'status': HostelStatus.APPROVED,
             'created_by_super_admin': True,
@@ -329,7 +358,7 @@ class SuperAdminHostelViewSet(viewsets.ReadOnlyModelViewSet):
             action=ActionType.CREATE_ON_BEHALF,
             target_content_type=target_ct,
             target_object_id=hostel.id,
-            notes=f"Created hostel '{hostel.name}' on behalf of {phone}"
+            notes=f"Created hostel '{hostel.name}' under Super Admin inventory"
         )
 
         return Response(HostelSerializer(hostel).data, status=status.HTTP_201_CREATED)
@@ -378,10 +407,11 @@ class AdminHostelViewSet(viewsets.ModelViewSet):
         GAP-M2-11  POST /{id}/submit/ requires ≥3 photos before setting PENDING.
     """
     serializer_class = HostelSerializer
-    permission_classes = [IsAuthenticated, IsHostelAdmin, IsOwnerOfHostel]
-    owner_field = 'owner'
+    permission_classes = [IsAuthenticated, IsSuperAdminOrHostelAdmin]
 
     def get_queryset(self):
+        if self.request.user.role == 'SUPER_ADMIN':
+            return Hostel.objects.all().order_by('-created_at')
         return Hostel.objects.filter(owner=self.request.user).order_by('-created_at')
 
     def perform_create(self, serializer):

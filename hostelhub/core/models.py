@@ -8,6 +8,7 @@ class ActionType(models.TextChoices):
     REJECT = "REJECT", "Reject"
     CREATE_ON_BEHALF = "CREATE_ON_BEHALF", "Create On Behalf"
     DEACTIVATE = "DEACTIVATE", "Deactivate"
+    REASSIGN = "REASSIGN", "Reassign"
 
 class AuditLog(models.Model):
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')

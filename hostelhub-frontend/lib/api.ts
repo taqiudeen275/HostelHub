@@ -404,7 +404,6 @@ export const adminHostelsApi = {
   deleteMedia: (hostelId: string, mediaId: number) => api.delete<void>(`/admin/hostels/${hostelId}/media/${mediaId}/`),
   reorderMedia: (hostelId: string, order: number[]) => api.patch<{ message: string }>(`/admin/hostels/${hostelId}/media-reorder/`, { order }),
   createVariant: (hostelId: string, data: Partial<RoomVariant>) => api.post<RoomVariant>(`/admin/hostels/${hostelId}/variants/`, data),
-  submitForReview: (id: string) => api.post<{message: string}>(`/admin/hostels/${id}/submit/`),
   getAmenities: () =>
     api
       .get<PaginatedResponse<Amenity> | Amenity[]>("/amenities/")
@@ -442,10 +441,11 @@ export const adminVariantsApi = {
 // Super Admin APIs
 export const superAdminApi = {
   getPendingHostels: () => api.get<Hostel[]>("/superadmin/hostels/?status=PENDING"),
+  getAllHostels: () => api.get<Hostel[]>("/superadmin/hostels/?status=ALL"),
   approveHostel: (id: string) => api.post<{message: string}>(`/superadmin/hostels/${id}/approve/`),
   rejectHostel: (id: string, reason: string) => api.post<{message: string}>(`/superadmin/hostels/${id}/reject/`, { reason }),
+  reassignHostel: (id: string, phone: string) => api.post<{message: string}>(`/superadmin/hostels/${id}/reassign/`, { phone }),
   createOnBehalf: (data: {
-    phone: string;
     name: string;
     address_text?: string;
     description?: string;
