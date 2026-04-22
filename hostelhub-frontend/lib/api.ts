@@ -524,15 +524,6 @@ export interface BookingStudentBrief {
   last_name: string;
 }
 
-export interface PaymentBrief {
-  id: string;
-  paystack_reference: string;
-  amount: string;
-  status: string;
-  channel: string;
-  verified_at: string | null;
-}
-
 export interface Booking {
   id: string;
   status: BookingStatus;
@@ -618,10 +609,84 @@ export const bookingsApi = {
     const qs = hostelId ? `?hostel_id=${hostelId}` : "";
     return api.get<AdminStats>(`/bookings/admin-stats/${qs}`);
   },
+  roommates: (id: string) =>
+    api.get<RoommatesResponse>(`/bookings/${id}/roommates/`),
 };
 
 export const paymentsApi = {
   get: (id: string) => api.get<Payment>(`/payments/${id}/`),
   refund: (id: string, reason: string, amount?: string) =>
     api.post<Payment>(`/payments/${id}/refund/`, { reason, amount }),
+};
+
+// ─── Roommates (M5) ──────────────────────────────────────────────────────────
+
+export interface RoommateCard {
+  booking_id: string;
+  status: BookingStatus;
+  first_name: string;
+  program: string;
+  level: string;
+  last_name: string | null;
+  full_name: string | null;
+  phone: string | null;
+  profile_photo: string | null;
+}
+
+export interface RoommatesResponse {
+  booking_id: string;
+  room: { id: string; label: string; locked_k: number | null };
+  hostel: { id: string; name: string };
+  slots_open: number;
+  roommates: RoommateCard[];
+}
+
+// ─── SMS broadcast (M5) ──────────────────────────────────────────────────────
+
+export interface SMSBroadcastPreview {
+  audience_count: number;
+  segments: number;
+  character_count: number;
+  max_length: number;
+  estimated_cost_ghs: string;
+}
+
+export interface SMSBroadcastSummary {
+  audience_count: number;
+  segments: number;
+  estimated_cost_ghs: string;
+  async: boolean;
+}
+
+export interface SMSLogEntry {
+  id: number;
+  to_phone: string;
+  body: string;
+  status: "QUEUED" | "SENT" | "DELIVERED" | "FAILED";
+  template_key: string;
+  cost: string | null;
+  created_at: string;
+}
+
+export interface SMSLogResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: SMSLogEntry[];
+}
+
+export const smsApi = {
+  preview: (hostelId: string, message: string) => {
+    const qs = new URLSearchParams({ message });
+    return api.get<SMSBroadcastPreview>(
+      `/admin/hostels/${hostelId}/sms-broadcast/preview/?${qs}`
+    );
+  },
+  broadcast: (hostelId: string, message: string) =>
+    api.post<SMSBroadcastSummary>(
+      `/admin/hostels/${hostelId}/sms-broadcast/`,
+      { message }
+    ),
+  log: (hostelId: string) =>
+    api.get<SMSLogResponse>(`/admin/hostels/${hostelId}/sms-log/`),
 };

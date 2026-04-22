@@ -1,6 +1,7 @@
 """Booking URL configuration (mounted at /api/v1/bookings/)."""
 from django.urls import path
 
+from .roommates import RoommatesView
 from .views import (
     AdminDashboardStatsView,
     BookingCancelView,
@@ -18,5 +19,6 @@ urlpatterns = [
     path("<uuid:pk>/cancel/", BookingCancelView.as_view(), name="booking-cancel"),
     path("<uuid:pk>/check-in/", BookingCheckInView.as_view(), name="booking-check-in"),
     path("<uuid:pk>/check-out/", BookingCheckOutView.as_view(), name="booking-check-out"),
+    path("<uuid:pk>/roommates/", RoommatesView.as_view(), name="booking-roommates"),
 ]
 

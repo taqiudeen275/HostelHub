@@ -26,6 +26,7 @@ import {
   paymentsApi,
 } from "@/lib/api";
 import { usePolling } from "@/lib/use-polling";
+import { RoommateSection } from "@/components/bookings/roommate-section";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -262,24 +263,13 @@ export default function BookingDetailPage() {
         </Card>
       )}
 
-      {/* ── Roommates stub ── */}
-      {booking.chosen_occupancy_at_booking > 1 && (
-        <Card className="bg-gradient-to-br from-primary/5 to-transparent">
-          <CardContent className="flex items-start gap-3 py-5">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-              <Users className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="font-medium text-foreground text-sm">Roommates</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Roommate cards with privacy-aware contact details land in Milestone M5.
-                Until then, expect {booking.chosen_occupancy_at_booking - 1} other student
-                {booking.chosen_occupancy_at_booking > 2 ? "s" : ""} in this room.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* ── Roommates ── */}
+      <RoommateSection
+        bookingId={booking.id}
+        hostelSlug={booking.hostel.slug}
+        chosenOccupancy={booking.chosen_occupancy_at_booking}
+      />
+
     </div>
   );
 }

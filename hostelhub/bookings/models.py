@@ -62,6 +62,10 @@ class Booking(models.Model):
     # Populated while status = PENDING_PAYMENT; nulled once confirmed.
     reservation_expires_at = models.DateTimeField(null=True, blank=True)
 
+    # Optional admin-set expected check-in date. If set, the check_in_reminder
+    # scheduled task SMS's the student the day before. Null = no reminder.
+    expected_check_in = models.DateField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

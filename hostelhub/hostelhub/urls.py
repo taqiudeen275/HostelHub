@@ -13,6 +13,7 @@ urlpatterns = [
         path("", include("core.urls")),
         path("", include("accounts.urls")),
         path("", include("hostels.urls")),
+        path("", include("notifications.urls")),
         path("bookings/", include("bookings.urls")),
         path("payments/", include("payments.urls")),
     ])),

@@ -223,6 +223,12 @@ ARKESEL_CALLBACK_URL = env("ARKESEL_CALLBACK_URL", default="")
 ARKESEL_MAX_RETRIES = env.int("ARKESEL_MAX_RETRIES", default=3)
 ARKESEL_TIMEOUT = env.int("ARKESEL_TIMEOUT", default=10)
 
+# Per-segment broadcast price estimate shown in the admin UI (pre-send).
+# Arkesel's real per-message `cost` is persisted on SMSMessage after send.
+SMS_BROADCAST_COST_PER_SEGMENT_GHS = env(
+    "SMS_BROADCAST_COST_PER_SEGMENT_GHS", default="0.10"
+)
+
 # ---------------------------------------------------------------------------
 # Paystack
 # ---------------------------------------------------------------------------
@@ -240,8 +246,12 @@ Q_CLUSTER = {
     "compress": True,
     "save_limit": 250,
     "queue_limit": 500,
-    "orm": "default",   # use the same DB as Django (SQLite-safe for dev)
 }
+
+if env("REDIS_URL", default=""):
+    Q_CLUSTER["redis"] = env("REDIS_URL")
+else:
+    Q_CLUSTER["orm"] = "default"
 
 # ---------------------------------------------------------------------------
 # OTP settings (common sense extras not in PRD but needed)

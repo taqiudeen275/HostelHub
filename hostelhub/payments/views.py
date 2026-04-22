@@ -12,7 +12,10 @@ from rest_framework.views import APIView
 
 from accounts.models import UserRole
 from accounts.permissions import IsSuperAdmin
-from notifications.services import send_booking_confirmation_sms
+from notifications.services import (
+    send_booking_confirmation_sms,
+    send_payment_received_sms,
+)
 
 from . import services
 from .adapters.paystack import PaystackError
@@ -129,13 +132,25 @@ class PaymentRefundView(APIView):
 
 
 def _fire_confirmation_sms(payment: Payment) -> None:
-    """Send the booking-confirmed SMS. Called outside atomic blocks only."""
+    """
+    Send both the booking-confirmed and payment-received SMS. Called outside
+    atomic blocks only. Failures in either don't block the other.
+    """
+    booking = payment.booking
     try:
-        booking = payment.booking
         send_booking_confirmation_sms(
             phone=booking.student.phone,
             hostel_name=booking.room.variant.hostel.name,
             room_label=booking.room.label,
         )
     except Exception:  # pragma: no cover
-        logger.exception("SMS send failed for payment %s", payment.id)
+        logger.exception("booking_confirmed SMS failed for payment %s", payment.id)
+
+    try:
+        send_payment_received_sms(
+            phone=booking.student.phone,
+            amount_ghs=payment.amount,
+            reference=payment.paystack_reference,
+        )
+    except Exception:  # pragma: no cover
+        logger.exception("payment_received SMS failed for payment %s", payment.id)

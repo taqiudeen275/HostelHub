@@ -24,4 +24,10 @@ class ConsoleAdapter(SMSAdapter):
         )
         logger.info(output)
         print(output)   # also print so it shows in runserver output
-        return {"success": True, "message_id": "console-dummy", "error": None}
+        return {
+            "success": True,
+            "message_id": "console-dummy",
+            "error": None,
+            "raw": None,
+            "cost": None,
+        }

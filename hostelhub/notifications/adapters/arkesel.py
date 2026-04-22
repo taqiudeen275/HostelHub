@@ -208,6 +208,16 @@ class ArkeselAdapter(SMSAdapter):
                     records = data.get("data") or []
                     # For single sends, grab the first sms_id
                     sms_id = records[0].get("id") if records else None
+                    # Arkesel exposes per-message cost under records[i].cost or
+                    # rate; sum whatever we can find for the caller to persist.
+                    cost = None
+                    if records:
+                        per_msg = records[0].get("cost") or records[0].get("rate")
+                        if per_msg is not None:
+                            try:
+                                cost = float(per_msg) * len(records)
+                            except (TypeError, ValueError):
+                                cost = None
                     logger.info(
                         "Arkesel: SMS sent to %d recipient(s). sms_id=%s sandbox=%s",
                         len(recipients), sms_id, self.use_sandbox,
@@ -217,6 +227,7 @@ class ArkeselAdapter(SMSAdapter):
                         "message_id": sms_id,
                         "error": None,
                         "raw": data,
+                        "cost": cost,
                     }
 
                 # ── Client errors (4xx) — do NOT retry ───────────────
