@@ -6,9 +6,12 @@ import { toast } from "sonner";
 import {
   AlertCircle,
   ArrowRight,
+  Building2,
   CheckCircle2,
   Clock,
-  Loader2,
+  CreditCard,
+  ExternalLink,
+  Search,
   XCircle,
 } from "lucide-react";
 
@@ -19,6 +22,12 @@ import {
   bookingsApi,
   ApiError,
 } from "@/lib/api";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 const ACTIVE_STATUSES: BookingStatus[] = [
   "PENDING_PAYMENT",
@@ -50,93 +59,154 @@ export default function StudentBookingsPage() {
   const past = bookings.filter((b) => !ACTIVE_STATUSES.includes(b.status));
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-          My bookings
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Track your active reservations and revisit past ones.
-        </p>
+    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            My Bookings
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track your reservations and manage your stays.
+          </p>
+        </div>
+        <Button asChild className="gap-1.5 shrink-0 self-start sm:self-auto">
+          <Link href="/hostels">
+            <Search className="w-4 h-4" />
+            Find hostels
+          </Link>
+        </Button>
       </div>
 
+      {/* ── Content ── */}
       {isLoading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-        </div>
+        <LoadingSkeleton />
       ) : bookings.length === 0 ? (
         <EmptyState />
       ) : (
-        <>
-          <BookingSection
-            title="Active"
-            bookings={active}
-            onCancelled={fetchBookings}
-            emptyMessage="You have no active bookings right now."
-          />
-          {past.length > 0 && (
-            <BookingSection
-              title="Past"
-              bookings={past}
-              onCancelled={fetchBookings}
-            />
-          )}
-        </>
+        <Tabs defaultValue="active">
+          <TabsList variant="line" className="mb-6">
+            <TabsTrigger value="active" className="gap-1.5">
+              Active
+              {active.length > 0 && (
+                <Badge variant="default" className="ml-1 h-4 min-w-4 px-1 text-[10px]">
+                  {active.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="past" className="gap-1.5">
+              Past
+              {past.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-4 min-w-4 px-1 text-[10px]">
+                  {past.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="active">
+            {active.length === 0 ? (
+              <EmptyTabState
+                message="You have no active bookings right now."
+                actionLabel="Browse hostels"
+                actionHref="/hostels"
+              />
+            ) : (
+              <div className="space-y-3">
+                {active.map((b) => (
+                  <BookingRow key={b.id} booking={b} onCancelled={fetchBookings} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="past">
+            {past.length === 0 ? (
+              <EmptyTabState
+                message="No past bookings to show."
+              />
+            ) : (
+              <div className="space-y-3">
+                {past.map((b) => (
+                  <BookingRow key={b.id} booking={b} onCancelled={fetchBookings} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
 }
+
+/* ── Empty states ── */
 
 function EmptyState() {
   return (
-    <div className="rounded-2xl bg-white ring-1 ring-gray-200 p-10 text-center">
-      <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
-        <ArrowRight className="w-5 h-5" />
-      </div>
-      <h2 className="text-lg font-semibold text-gray-900">
-        No bookings yet
-      </h2>
-      <p className="text-sm text-gray-500 mt-1 mb-4">
-        Browse verified hostels near your campus to get started.
-      </p>
-      <Link
-        href="/hostels"
-        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
-      >
-        Find a hostel
-      </Link>
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+          <Building2 className="w-6 h-6" />
+        </div>
+        <h2 className="text-lg font-semibold text-foreground">No bookings yet</h2>
+        <p className="text-sm text-muted-foreground mt-1 mb-6 max-w-sm">
+          Browse verified hostels near your campus and book your perfect accommodation.
+        </p>
+        <Button asChild size="lg" className="gap-1.5">
+          <Link href="/hostels">
+            <Search className="w-4 h-4" />
+            Find a hostel
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyTabState({
+  message,
+  actionLabel,
+  actionHref,
+}: {
+  message: string;
+  actionLabel?: string;
+  actionHref?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-dashed bg-muted/30 py-12 px-6 text-center">
+      <p className="text-sm text-muted-foreground">{message}</p>
+      {actionLabel && actionHref && (
+        <Button variant="outline" size="sm" asChild className="mt-4 gap-1.5">
+          <Link href={actionHref}>
+            {actionLabel}
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }
 
-function BookingSection({
-  title,
-  bookings,
-  onCancelled,
-  emptyMessage,
-}: {
-  title: string;
-  bookings: Booking[];
-  onCancelled: () => void;
-  emptyMessage?: string;
-}) {
+function LoadingSkeleton() {
   return (
-    <section>
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-        {title}
-      </h2>
-      {bookings.length === 0 ? (
-        <p className="text-sm text-gray-500">{emptyMessage}</p>
-      ) : (
-        <div className="space-y-3">
-          {bookings.map((b) => (
-            <BookingRow key={b.id} booking={b} onCancelled={onCancelled} />
-          ))}
-        </div>
-      )}
-    </section>
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <Card key={i}>
+          <CardContent className="flex items-center gap-4 py-5">
+            <Skeleton className="h-11 w-11 rounded-xl shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-36" />
+            </div>
+            <Skeleton className="h-5 w-24 rounded-full" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
+
+/* ── Booking row ── */
 
 function BookingRow({
   booking,
@@ -168,124 +238,141 @@ function BookingRow({
   const remainingSeconds = useExpirySeconds(booking.reservation_expires_at);
 
   return (
-    <div className="rounded-xl bg-white ring-1 ring-gray-200 p-5">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="min-w-0 flex-1">
-          <Link
-            href={`/student/bookings/${booking.id}`}
-            className="font-semibold text-gray-900 hover:text-emerald-700 transition-colors"
-          >
-            {booking.hostel.name}
-          </Link>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Room {booking.room.label} · {booking.variant.name} ·{" "}
-            {booking.chosen_occupancy_at_booking === 1
-              ? "Solo"
-              : `${booking.chosen_occupancy_at_booking}-way share`}
-          </p>
-        </div>
-        <StatusPill status={booking.status} />
-      </div>
-
-      <div className="mt-4 flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">
-            Price
+    <Card className="group hover:ring-primary/20 transition-all duration-200">
+      <CardContent className="p-0">
+        {/* Top section */}
+        <div className="flex items-start gap-4 p-5 pb-0">
+          <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5" />
           </div>
-          <div className="text-lg font-bold text-gray-900">
-            GH₵ {Number(booking.price_paid).toLocaleString()}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <Link
+                  href={`/student/bookings/${booking.id}`}
+                  className="font-semibold text-foreground hover:text-primary transition-colors"
+                >
+                  {booking.hostel.name}
+                </Link>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Room {booking.room.label} · {booking.variant.name} ·{" "}
+                  {booking.chosen_occupancy_at_booking === 1
+                    ? "Solo"
+                    : `${booking.chosen_occupancy_at_booking}-way share`}
+                </p>
+              </div>
+              <StatusPill status={booking.status} />
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {isPending && remainingSeconds > 0 && (
+        {/* Pending payment countdown */}
+        {isPending && remainingSeconds > 0 && (
+          <div className="mx-5 mt-3 flex items-center gap-2 rounded-lg bg-chart-1/5 border border-chart-1/20 px-3 py-2">
+            <Clock className="w-3.5 h-3.5 text-chart-1 shrink-0" />
             <CountdownTimer
               seconds={remainingSeconds}
-              label="Expires in"
+              label="Reservation expires in"
               onExpire={onCancelled}
-              className="text-xs text-amber-700 font-medium"
+              className="text-xs text-chart-1 font-medium"
             />
-          )}
-          {isPending && booking.latest_payment?.paystack_reference && (
-            <a
-              href={`https://checkout.paystack.com/${booking.latest_payment.paystack_reference}`}
-              className="h-9 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1"
-            >
-              Complete payment
-            </a>
-          )}
-          <Link
-            href={`/student/bookings/${booking.id}`}
-            className="h-9 px-3 rounded-lg ring-1 ring-gray-200 text-gray-700 hover:ring-gray-300 text-xs font-semibold inline-flex items-center gap-1"
-          >
-            Details
-          </Link>
-          {cancellable && (
-            <button
-              disabled={cancelling}
-              onClick={handleCancel}
-              className="h-9 px-3 rounded-lg ring-1 ring-red-200 text-red-700 hover:bg-red-50 text-xs font-semibold inline-flex items-center gap-1 disabled:opacity-50"
-            >
-              {cancelling ? "…" : "Cancel"}
-            </button>
-          )}
+          </div>
+        )}
+
+        {/* Bottom section */}
+        <div className="flex items-end justify-between gap-3 flex-wrap p-5 pt-3">
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+              Price
+            </p>
+            <p className="text-lg font-bold text-foreground tabular-nums">
+              GH₵ {Number(booking.price_paid).toLocaleString()}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {isPending && booking.latest_payment?.paystack_reference && (
+              <Button asChild size="sm" className="gap-1.5">
+                <a href={`https://checkout.paystack.com/${booking.latest_payment.paystack_reference}`}>
+                  <CreditCard className="w-3.5 h-3.5" />
+                  Complete payment
+                  <ExternalLink className="w-3 h-3 opacity-50" />
+                </a>
+              </Button>
+            )}
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/student/bookings/${booking.id}`}>Details</Link>
+            </Button>
+            {cancellable && (
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={cancelling}
+                onClick={handleCancel}
+              >
+                {cancelling ? "Cancelling…" : "Cancel"}
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
+
+/* ── Status pill ── */
 
 function StatusPill({ status }: { status: BookingStatus }) {
   const config: Record<
     BookingStatus,
-    { label: string; classes: string; Icon: typeof Clock }
+    { label: string; variant: "default" | "secondary" | "outline" | "destructive"; Icon: typeof Clock }
   > = {
     PENDING_PAYMENT: {
       label: "Awaiting payment",
-      classes: "bg-amber-50 text-amber-700 ring-amber-200",
+      variant: "outline",
       Icon: Clock,
     },
     CONFIRMED: {
       label: "Confirmed",
-      classes: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+      variant: "default",
       Icon: CheckCircle2,
     },
     CHECKED_IN: {
       label: "Checked in",
-      classes: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+      variant: "default",
       Icon: CheckCircle2,
     },
     CHECKED_OUT: {
       label: "Checked out",
-      classes: "bg-gray-50 text-gray-700 ring-gray-200",
+      variant: "secondary",
       Icon: CheckCircle2,
     },
     CANCELLED: {
       label: "Cancelled",
-      classes: "bg-gray-50 text-gray-600 ring-gray-200",
+      variant: "secondary",
       Icon: XCircle,
     },
     EXPIRED: {
       label: "Expired",
-      classes: "bg-gray-50 text-gray-500 ring-gray-200",
+      variant: "secondary",
       Icon: AlertCircle,
     },
     REFUNDED: {
       label: "Refunded",
-      classes: "bg-sky-50 text-sky-700 ring-sky-200",
+      variant: "outline",
       Icon: AlertCircle,
     },
   };
-  const { label, classes, Icon } = config[status];
+  const { label, variant, Icon } = config[status];
   return (
-    <span
-      className={`inline-flex items-center gap-1 text-[11px] font-semibold ring-1 rounded-full px-2 py-0.5 ${classes}`}
-    >
+    <Badge variant={variant} className="gap-1 text-[10px] shrink-0">
       <Icon className="w-3 h-3" />
       {label}
-    </span>
+    </Badge>
   );
 }
+
+/* ── Hooks ── */
 
 function useExpirySeconds(expiresAt: string | null): number {
   const [secs, setSecs] = useState(() => calcSeconds(expiresAt));

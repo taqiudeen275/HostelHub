@@ -27,9 +27,9 @@ def _gen_reference(booking_id) -> str:
     return f"HH-{str(booking_id)[:8]}-{secrets.token_hex(4).upper()}"
 
 
-def _callback_url() -> str:
-    base = getattr(settings, "PAYMENT_CALLBACK_URL", "http://localhost:3000/student/bookings/callback")
-    return base
+def _callback_url(booking_id) -> str:
+    base = getattr(settings, "PAYMENT_CALLBACK_URL", "http://localhost:3000/student/bookings")
+    return f"{base}/{booking_id}"
 
 
 # ─── Public API ──────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ def initialize_payment(booking: Booking) -> tuple[Payment, str]:
     Returns (payment, authorization_url).
     """
     reference = _gen_reference(booking.id)
-    email = booking.student.email or f"student+{booking.student.id}@hostelhub.local"
+    email = booking.student.email or f"student+{booking.student.id}@hostelhub.app"
 
     payment = Payment.objects.create(
         booking=booking,
@@ -57,7 +57,7 @@ def initialize_payment(booking: Booking) -> tuple[Payment, str]:
             amount_ghs=booking.price_paid,
             email=email,
             reference=reference,
-            callback_url=_callback_url(),
+            callback_url=_callback_url(booking.id),
             metadata={
                 "booking_id": str(booking.id),
                 "hostel": booking.room.variant.hostel.name,

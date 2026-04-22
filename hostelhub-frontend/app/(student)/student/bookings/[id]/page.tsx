@@ -6,9 +6,16 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  Building2,
   CheckCircle2,
   Clock,
+  CreditCard,
+  DoorOpen,
+  ExternalLink,
   Loader2,
+  MapPin,
+  Navigation,
+  Phone,
   Users,
 } from "lucide-react";
 
@@ -19,6 +26,11 @@ import {
   paymentsApi,
 } from "@/lib/api";
 import { usePolling } from "@/lib/use-polling";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 
 export default function BookingDetailPage() {
   const { id } = useParams() as { id: string };
@@ -57,12 +69,29 @@ export default function BookingDetailPage() {
   // webhook lands, so localhost dev works without ngrok.
   useEffect(() => {
     if (!cameFromPaystack || !booking?.latest_payment?.id) return;
-    paymentsApi.get(booking.latest_payment.id).catch(() => {});
+    let cancelled = false;
+    (async () => {
+      try {
+        await paymentsApi.get(booking.latest_payment!.id);
+        if (!cancelled) await fetchBooking();
+      } catch {
+        // Verification attempt failed — polling will retry
+      }
+    })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameFromPaystack, booking?.latest_payment?.id]);
 
-  // Poll the booking until it leaves PENDING_PAYMENT
-  usePolling(fetchBooking, {
+  // Poll: verify payment with Paystack, then re-fetch booking until it leaves PENDING_PAYMENT
+  const fetchWithVerify = async (): Promise<Booking | null> => {
+    // Poke the payment endpoint first — that triggers server-side Paystack verify
+    if (booking?.latest_payment?.id) {
+      await paymentsApi.get(booking.latest_payment.id).catch(() => {});
+    }
+    return fetchBooking();
+  };
+
+  usePolling(fetchWithVerify, {
     enabled: booking?.status === "PENDING_PAYMENT",
     intervalMs: 2500,
     maxAttempts: 15,
@@ -72,107 +101,190 @@ export default function BookingDetailPage() {
   if (isLoading || !booking) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <Link
-          href="/student/bookings"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"
-        >
+    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
+      {/* ── Back link ── */}
+      <Button variant="ghost" size="sm" asChild className="gap-1.5 -ml-2">
+        <Link href="/student/bookings">
           <ArrowLeft className="w-4 h-4" />
           All bookings
         </Link>
-      </div>
+      </Button>
 
-      {/* Status banner */}
+      {/* ── Status banner ── */}
       <StatusBanner booking={booking} cameFromPaystack={cameFromPaystack} />
 
-      {/* Summary */}
-      <div className="rounded-xl bg-white ring-1 ring-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          <Link
-            href={`/hostels/${booking.hostel.slug}`}
-            className="hover:text-emerald-700 transition-colors"
-          >
-            {booking.hostel.name}
-          </Link>
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Room {booking.room.label} · {booking.variant.name}
-        </p>
-
-        <dl className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-          <Stat label="Occupancy" value={
-            booking.chosen_occupancy_at_booking === 1
-              ? "Solo"
-              : `${booking.chosen_occupancy_at_booking}-way share`
-          } />
-          <Stat
-            label="Price paid"
-            value={`GH₵ ${Number(booking.price_paid).toLocaleString()}`}
-          />
-          <Stat
-            label="Booked"
-            value={new Date(booking.created_at).toLocaleDateString()}
-          />
-        </dl>
-      </div>
-
-      {/* Payment */}
-      {booking.latest_payment && (
-        <div className="rounded-xl bg-white ring-1 ring-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Payment
-          </h2>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <p className="text-sm text-gray-900 font-medium">
-                {booking.latest_payment.paystack_reference}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Status: <span className="font-semibold">{booking.latest_payment.status}</span>
-                {booking.latest_payment.channel && ` · via ${booking.latest_payment.channel}`}
-              </p>
+      {/* ── Hostel summary ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5" />
             </div>
-            <span
-              className={`text-[11px] font-semibold rounded-full ring-1 px-2 py-0.5 ${
-                booking.latest_payment.status === "SUCCESS"
-                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                  : booking.latest_payment.status === "INITIATED"
-                  ? "bg-amber-50 text-amber-700 ring-amber-200"
-                  : "bg-gray-50 text-gray-600 ring-gray-200"
-              }`}
-            >
-              {booking.latest_payment.status}
-            </span>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-xl">
+                <Link
+                  href={`/hostels/${booking.hostel.slug}`}
+                  className="hover:text-primary transition-colors"
+                >
+                  {booking.hostel.name}
+                </Link>
+              </CardTitle>
+              <CardDescription className="mt-0.5">
+                Room {booking.room.label} · {booking.variant.name}
+              </CardDescription>
+            </div>
           </div>
-        </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <StatBlock
+              label="Occupancy"
+              value={
+                booking.chosen_occupancy_at_booking === 1
+                  ? "Solo"
+                  : `${booking.chosen_occupancy_at_booking}-way share`
+              }
+              icon={<Users className="w-3.5 h-3.5" />}
+            />
+            <StatBlock
+              label="Price paid"
+              value={`GH₵ ${Number(booking.price_paid).toLocaleString()}`}
+              icon={<CreditCard className="w-3.5 h-3.5" />}
+            />
+            <StatBlock
+              label="Booked on"
+              value={new Date(booking.created_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+              icon={<Clock className="w-3.5 h-3.5" />}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Hostel location & contact ── */}
+      {(booking.hostel.address_text || booking.hostel.owner_contact_phone) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              Location & Contact
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {booking.hostel.address_text && (
+              <div className="flex items-start gap-2.5 text-sm">
+                <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                <span className="text-foreground">{booking.hostel.address_text}</span>
+              </div>
+            )}
+            {booking.hostel.owner_contact_phone && (
+              <div className="flex items-center gap-2.5 text-sm">
+                <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                <a
+                  href={`tel:${booking.hostel.owner_contact_phone}`}
+                  className="text-foreground hover:text-primary transition-colors"
+                >
+                  {booking.hostel.owner_contact_phone}
+                </a>
+              </div>
+            )}
+            {(() => {
+              const hasCoords = booking.hostel.latitude && booking.hostel.longitude;
+              const mapsUrl = hasCoords
+                ? `https://www.google.com/maps/dir/?api=1&destination=${booking.hostel.latitude},${booking.hostel.longitude}`
+                : booking.hostel.address_text
+                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.hostel.address_text)}`
+                  : null;
+              if (!mapsUrl) return null;
+              return (
+                <Button variant="outline" size="sm" asChild className="gap-1.5 mt-1">
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
+                    <Navigation className="w-3.5 h-3.5" />
+                    Get Directions
+                    <ExternalLink className="w-3 h-3 opacity-50" />
+                  </a>
+                </Button>
+              );
+            })()}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Roommates stub (M5) */}
+      {/* ── Payment info ── */}
+      {booking.latest_payment && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-primary" />
+              Payment
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground font-mono">
+                  {booking.latest_payment.paystack_reference}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Status:{" "}
+                  <span className="font-semibold">{booking.latest_payment.status}</span>
+                  {booking.latest_payment.channel &&
+                    ` · via ${booking.latest_payment.channel}`}
+                </p>
+              </div>
+              <PaymentStatusBadge status={booking.latest_payment.status} />
+            </div>
+
+            {booking.status === "PENDING_PAYMENT" &&
+              booking.latest_payment.paystack_reference && (
+                <div className="mt-4">
+                  <Button asChild className="gap-1.5 w-full sm:w-auto">
+                    <a
+                      href={`https://checkout.paystack.com/${booking.latest_payment.paystack_reference}`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Complete payment
+                      <ExternalLink className="w-3 h-3 opacity-50" />
+                    </a>
+                  </Button>
+                </div>
+              )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Roommates stub ── */}
       {booking.chosen_occupancy_at_booking > 1 && (
-        <div className="rounded-xl bg-white ring-1 ring-gray-200 p-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-              Roommates
-            </h2>
-          </div>
-          <p className="text-sm text-gray-600">
-            Roommate cards with privacy-aware contact details land in Milestone M5.
-            Until then, expect {booking.chosen_occupancy_at_booking - 1} other student
-            {booking.chosen_occupancy_at_booking > 2 ? "s" : ""} in this room.
-          </p>
-        </div>
+        <Card className="bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="flex items-start gap-3 py-5">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground text-sm">Roommates</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Roommate cards with privacy-aware contact details land in Milestone M5.
+                Until then, expect {booking.chosen_occupancy_at_booking - 1} other student
+                {booking.chosen_occupancy_at_booking > 2 ? "s" : ""} in this room.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
 }
+
+/* ── Sub-components ── */
 
 function StatusBanner({
   booking,
@@ -183,44 +295,87 @@ function StatusBanner({
 }) {
   if (booking.status === "CONFIRMED" || booking.status === "CHECKED_IN") {
     return (
-      <div className="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 p-5 flex items-start gap-3">
-        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-        <div>
-          <p className="font-semibold text-emerald-900">Booking confirmed</p>
-          <p className="text-sm text-emerald-800 mt-1">
-            Your slot is secured. You'll get an SMS reminder a day before check-in.
-          </p>
-        </div>
-      </div>
+      <Card className="border-chart-3/30 bg-chart-3/5">
+        <CardContent className="flex items-start gap-3 py-5">
+          <div className="w-9 h-9 rounded-lg bg-chart-3/10 text-chart-3 flex items-center justify-center shrink-0 mt-0.5">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">
+              Booking {booking.status === "CHECKED_IN" ? "active" : "confirmed"}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Your slot is secured. You'll get an SMS reminder a day before check-in.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
+
   if (booking.status === "PENDING_PAYMENT") {
     return (
-      <div className="rounded-xl bg-amber-50 ring-1 ring-amber-200 p-5 flex items-start gap-3">
-        <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-        <div>
-          <p className="font-semibold text-amber-900">
-            {cameFromPaystack ? "Confirming your payment…" : "Payment still pending"}
-          </p>
-          <p className="text-sm text-amber-800 mt-1">
-            {cameFromPaystack
-              ? "Hang tight — we're checking with Paystack. This page will update automatically."
-              : "Complete your Paystack payment to lock this slot before the 15-minute window closes."}
-          </p>
-        </div>
-      </div>
+      <Card className="border-chart-1/30 bg-chart-1/5">
+        <CardContent className="py-5">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-chart-1/10 text-chart-1 flex items-center justify-center shrink-0 mt-0.5">
+              {cameFromPaystack ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Clock className="w-5 h-5" />
+              )}
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">
+                {cameFromPaystack ? "Confirming your payment…" : "Payment still pending"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {cameFromPaystack
+                  ? "Hang tight — we're checking with Paystack. This page will update automatically."
+                  : "Complete your Paystack payment to lock this slot before the 15-minute window closes."}
+              </p>
+            </div>
+          </div>
+          {cameFromPaystack && (
+            <Progress value={undefined} className="mt-4 h-1.5 animate-pulse" />
+          )}
+        </CardContent>
+      </Card>
     );
   }
+
   return null;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function PaymentStatusBadge({ status }: { status: string }) {
+  const variants: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; label: string }> = {
+    SUCCESS: { variant: "default", label: "Success" },
+    INITIATED: { variant: "outline", label: "Initiated" },
+    FAILED: { variant: "destructive", label: "Failed" },
+    REFUNDED: { variant: "secondary", label: "Refunded" },
+  };
+  const config = variants[status] ?? { variant: "outline" as const, label: status };
+  return <Badge variant={config.variant}>{config.label}</Badge>;
+}
+
+function StatBlock({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}) {
   return (
-    <div className="rounded-lg bg-gray-50 ring-1 ring-gray-200 px-3 py-2">
-      <dt className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
-        {label}
-      </dt>
-      <dd className="text-sm font-semibold text-gray-900 mt-0.5">{value}</dd>
+    <div className="rounded-xl bg-muted/50 border px-3.5 py-3">
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-muted-foreground">{icon}</span>
+        <dt className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+          {label}
+        </dt>
+      </div>
+      <dd className="text-sm font-bold text-foreground">{value}</dd>
     </div>
   );
 }

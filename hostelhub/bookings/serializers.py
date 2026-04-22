@@ -22,6 +22,10 @@ class _HostelBrief(serializers.Serializer):
     id = serializers.UUIDField()
     name = serializers.CharField()
     slug = serializers.CharField()
+    address_text = serializers.CharField(allow_blank=True)
+    latitude = serializers.DecimalField(max_digits=10, decimal_places=7, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=10, decimal_places=7, allow_null=True)
+    owner_contact_phone = serializers.CharField(allow_blank=True)
 
 
 class _VariantBrief(serializers.Serializer):
@@ -86,7 +90,15 @@ class BookingSerializer(serializers.ModelSerializer):
     def get_hostel(self, obj):
         h = obj.room.variant.hostel
         return _HostelBrief(
-            {"id": h.id, "name": h.name, "slug": h.slug}
+            {
+                "id": h.id,
+                "name": h.name,
+                "slug": h.slug,
+                "address_text": h.address_text or "",
+                "latitude": h.latitude,
+                "longitude": h.longitude,
+                "owner_contact_phone": h.owner_contact_phone or "",
+            }
         ).data
 
     def get_variant(self, obj):

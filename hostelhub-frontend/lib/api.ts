@@ -496,6 +496,10 @@ export interface BookingHostelBrief {
   id: string;
   name: string;
   slug: string;
+  address_text: string;
+  latitude: string | null;
+  longitude: string | null;
+  owner_contact_phone: string;
 }
 
 export interface BookingVariantBrief {
