@@ -2,6 +2,7 @@
 from django.urls import path
 
 from .views import (
+    AdminDashboardStatsView,
     BookingCancelView,
     BookingCheckInView,
     BookingCheckOutView,
@@ -12,8 +13,10 @@ from .views import (
 
 urlpatterns = [
     path("", BookingListCreateView.as_view(), name="booking-list-create"),
+    path("admin-stats/", AdminDashboardStatsView.as_view(), name="booking-admin-stats"),
     path("<uuid:pk>/", BookingDetailView.as_view(), name="booking-detail"),
     path("<uuid:pk>/cancel/", BookingCancelView.as_view(), name="booking-cancel"),
     path("<uuid:pk>/check-in/", BookingCheckInView.as_view(), name="booking-check-in"),
     path("<uuid:pk>/check-out/", BookingCheckOutView.as_view(), name="booking-check-out"),
 ]
+

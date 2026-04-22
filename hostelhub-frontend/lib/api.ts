@@ -524,6 +524,15 @@ export interface BookingStudentBrief {
   last_name: string;
 }
 
+export interface PaymentBrief {
+  id: string;
+  paystack_reference: string;
+  amount: string;
+  status: string;
+  channel: string;
+  verified_at: string | null;
+}
+
 export interface Booking {
   id: string;
   status: BookingStatus;
@@ -560,6 +569,39 @@ export interface Payment {
   created_at: string;
 }
 
+export interface AdminVariantStat {
+  id: string;
+  name: string;
+  bookings_count: number;
+  revenue: number;
+}
+
+export interface AdminHostelStat {
+  id: string;
+  name: string;
+  total_rooms: number;
+  occupied_rooms: number;
+  total_bookings: number;
+  confirmed_bookings: number;
+  pending_checkins: number;
+  total_revenue: number;
+  this_month_revenue: number;
+  variants: AdminVariantStat[];
+}
+
+export interface AdminStats {
+  totals: {
+    total_rooms: number;
+    occupied_rooms: number;
+    total_bookings: number;
+    confirmed_bookings: number;
+    pending_checkins: number;
+    total_revenue: number;
+    this_month_revenue: number;
+  };
+  hostels: AdminHostelStat[];
+}
+
 export const bookingsApi = {
   create: (payload: { room_id: string; chosen_occupancy: number }) =>
     api.post<BookingCreateResponse>("/bookings/", payload),
@@ -572,6 +614,10 @@ export const bookingsApi = {
     api.post<Booking>(`/bookings/${id}/cancel/`, { reason: reason ?? "" }),
   checkIn: (id: string) => api.post<Booking>(`/bookings/${id}/check-in/`, {}),
   checkOut: (id: string) => api.post<Booking>(`/bookings/${id}/check-out/`, {}),
+  adminStats: (hostelId?: string) => {
+    const qs = hostelId ? `?hostel_id=${hostelId}` : "";
+    return api.get<AdminStats>(`/bookings/admin-stats/${qs}`);
+  },
 };
 
 export const paymentsApi = {

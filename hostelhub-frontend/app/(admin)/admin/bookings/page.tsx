@@ -1,24 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  CalendarCheck, CheckCircle2, Clock, ExternalLink,
-  Loader2, LogOut, Phone, Search, Users, Wallet, XCircle,
+  CalendarCheck, CheckCircle2, Clock, Loader2, LogOut, Phone, Search, XCircle,
 } from "lucide-react";
 
 import {
   type Booking,
   type BookingStatus,
-  type AdminStats,
   ApiError,
   bookingsApi,
 } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUS_FILTERS: { label: string; value: BookingStatus | "ALL" }[] = [
   { label: "All", value: "ALL" },
@@ -29,10 +24,8 @@ const STATUS_FILTERS: { label: string; value: BookingStatus | "ALL" }[] = [
   { label: "Cancelled", value: "CANCELLED" },
 ];
 
-export default function AdminHostelBookingsPage() {
-  const { id: hostelId } = useParams() as { id: string };
+export default function AdminGlobalBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [stats, setStats] = useState<AdminStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<BookingStatus | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,25 +33,18 @@ export default function AdminHostelBookingsPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [rows, s] = await Promise.all([
-        bookingsApi.list(filter !== "ALL" ? { status: filter } : undefined),
-        bookingsApi.adminStats(hostelId),
-      ]);
-      setBookings(rows.filter((b) => b.hostel.id === hostelId));
-      setStats(s);
+      const rows = await bookingsApi.list(filter !== "ALL" ? { status: filter } : undefined);
+      setBookings(rows);
     } catch {
       toast.error("Could not load bookings.");
     } finally {
       setIsLoading(false);
     }
-  }, [filter, hostelId]);
+  }, [filter]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const hostel = useMemo(() => bookings[0]?.hostel, [bookings]);
-  const hostelStats = stats?.hostels.find((h) => h.id === hostelId);
 
   // Search filter
   const filteredBookings = useMemo(() => {
@@ -70,7 +56,8 @@ export default function AdminHostelBookingsPage() {
         b.student.last_name?.toLowerCase().includes(q) ||
         b.student.phone?.includes(q) ||
         b.room.label?.toLowerCase().includes(q) ||
-        b.variant.name?.toLowerCase().includes(q)
+        b.variant.name?.toLowerCase().includes(q) ||
+        b.hostel.name?.toLowerCase().includes(q)
     );
   }, [bookings, searchQuery]);
 
@@ -78,46 +65,12 @@ export default function AdminHostelBookingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">
-          Bookings {hostel?.name ? `· ${hostel.name}` : ""}
+          All Bookings
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Manage student bookings — check people in, track payments, and monitor occupancy.
+          Manage student bookings across all your hostels.
         </p>
       </div>
-
-      {/* Revenue Stats */}
-      {hostelStats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard
-            label="Total Revenue"
-            value={`GH₵ ${hostelStats.total_revenue.toLocaleString()}`}
-            icon={Wallet}
-            color="text-emerald-600 dark:text-emerald-400"
-            bg="bg-emerald-50 dark:bg-emerald-950"
-          />
-          <StatCard
-            label="This Month"
-            value={`GH₵ ${hostelStats.this_month_revenue.toLocaleString()}`}
-            icon={Wallet}
-            color="text-sky-600 dark:text-sky-400"
-            bg="bg-sky-50 dark:bg-sky-950"
-          />
-          <StatCard
-            label="Total Bookings"
-            value={String(hostelStats.total_bookings)}
-            icon={CalendarCheck}
-            color="text-indigo-600 dark:text-indigo-400"
-            bg="bg-indigo-50 dark:bg-indigo-950"
-          />
-          <StatCard
-            label="Pending Check-in"
-            value={String(hostelStats.pending_checkins)}
-            icon={Clock}
-            color="text-amber-600 dark:text-amber-400"
-            bg="bg-amber-50 dark:bg-amber-950"
-          />
-        </div>
-      )}
 
       {/* Filters + search */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -142,8 +95,8 @@ export default function AdminHostelBookingsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search student, room..."
-            className="h-9 pl-9 pr-4 w-full sm:w-56 rounded-lg bg-card ring-1 ring-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="Search student, hostel, room..."
+            className="h-9 pl-9 pr-4 w-full sm:w-64 rounded-lg bg-card ring-1 ring-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
       </div>
@@ -172,7 +125,7 @@ export default function AdminHostelBookingsPage() {
                 <thead>
                   <tr className="text-left text-xs uppercase text-muted-foreground tracking-wider border-b border-border bg-muted/30">
                     <th className="px-4 py-3 font-semibold">Student</th>
-                    <th className="px-4 py-3 font-semibold">Room</th>
+                    <th className="px-4 py-3 font-semibold">Location</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
                     <th className="px-4 py-3 font-semibold">Price</th>
                     <th className="px-4 py-3 font-semibold">Date</th>
@@ -197,34 +150,6 @@ export default function AdminHostelBookingsPage() {
         </>
       )}
     </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color,
-  bg,
-}: {
-  label: string;
-  value: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  bg: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
-          <Icon className={`w-4 h-4 ${color}`} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-lg font-bold text-foreground leading-tight">{value}</p>
-          <p className="text-[11px] text-muted-foreground">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -266,12 +191,9 @@ function AdminBookingRow({
         </a>
       </td>
       <td className="px-4 py-3">
-        <div className="font-medium text-foreground">{booking.room.label}</div>
+        <div className="font-medium text-foreground">{booking.hostel.name}</div>
         <div className="text-xs text-muted-foreground">
-          {booking.variant.name} ·{" "}
-          {booking.chosen_occupancy_at_booking === 1
-            ? "Solo"
-            : `${booking.chosen_occupancy_at_booking}-way`}
+          {booking.room.label} · {booking.variant.name}
         </div>
       </td>
       <td className="px-4 py-3">
@@ -361,6 +283,10 @@ function AdminBookingCard({
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div className="col-span-2">
+            <span className="text-muted-foreground">Hostel</span>
+            <p className="font-medium text-foreground">{booking.hostel.name}</p>
+          </div>
           <div>
             <span className="text-muted-foreground">Room</span>
             <p className="font-medium text-foreground">{booking.room.label}</p>

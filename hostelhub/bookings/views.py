@@ -1,6 +1,8 @@
 """Booking HTTP endpoints."""
 import logging
+from datetime import date
 
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -186,3 +188,97 @@ class BookingCheckOutView(APIView):
         except BookingError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_409_CONFLICT)
         return Response(BookingSerializer(booking).data)
+
+
+class AdminDashboardStatsView(APIView):
+    """GET /api/v1/bookings/admin-stats/ — aggregated stats for hostel admin."""
+    permission_classes = [IsHostelAdmin]
+
+    def get(self, request):
+        from hostels.models import Hostel, Room
+
+        user = request.user
+        hostels = Hostel.objects.filter(owner=user)
+
+        # Optional filter to a single hostel
+        hostel_id = request.query_params.get("hostel_id")
+        if hostel_id:
+            hostels = hostels.filter(pk=hostel_id)
+
+        # Revenue-eligible statuses
+        revenue_statuses = [
+            BookingStatus.CONFIRMED,
+            BookingStatus.CHECKED_IN,
+            BookingStatus.CHECKED_OUT,
+        ]
+
+        today = date.today()
+        month_start = today.replace(day=1)
+
+        per_hostel = []
+        for h in hostels:
+            rooms = Room.objects.filter(variant__hostel=h)
+            total_rooms = rooms.count()
+            occupied_rooms = rooms.filter(
+                status__in=["FULL", "PARTIALLY_BOOKED"]
+            ).count()
+
+            h_bookings = Booking.objects.filter(room__variant__hostel=h)
+            total_bookings = h_bookings.count()
+            confirmed_bookings = h_bookings.filter(
+                status__in=revenue_statuses
+            ).count()
+            pending_checkins = h_bookings.filter(
+                status=BookingStatus.CONFIRMED
+            ).count()
+
+            rev_qs = h_bookings.filter(status__in=revenue_statuses)
+            total_revenue = rev_qs.aggregate(s=Sum("price_paid"))["s"] or 0
+            this_month_revenue = (
+                rev_qs.filter(created_at__date__gte=month_start)
+                .aggregate(s=Sum("price_paid"))["s"]
+                or 0
+            )
+
+            # Per-variant breakdown
+            variant_stats = []
+            for v in h.variants.all():
+                v_bookings = Booking.objects.filter(
+                    room__variant=v, status__in=revenue_statuses
+                )
+                v_revenue = v_bookings.aggregate(s=Sum("price_paid"))["s"] or 0
+                variant_stats.append({
+                    "id": str(v.id),
+                    "name": v.name,
+                    "bookings_count": v_bookings.count(),
+                    "revenue": float(v_revenue),
+                })
+
+            per_hostel.append({
+                "id": str(h.id),
+                "name": h.name,
+                "total_rooms": total_rooms,
+                "occupied_rooms": occupied_rooms,
+                "total_bookings": total_bookings,
+                "confirmed_bookings": confirmed_bookings,
+                "pending_checkins": pending_checkins,
+                "total_revenue": float(total_revenue),
+                "this_month_revenue": float(this_month_revenue),
+                "variants": variant_stats,
+            })
+
+        # Aggregate totals
+        totals = {
+            "total_rooms": sum(h["total_rooms"] for h in per_hostel),
+            "occupied_rooms": sum(h["occupied_rooms"] for h in per_hostel),
+            "total_bookings": sum(h["total_bookings"] for h in per_hostel),
+            "confirmed_bookings": sum(h["confirmed_bookings"] for h in per_hostel),
+            "pending_checkins": sum(h["pending_checkins"] for h in per_hostel),
+            "total_revenue": sum(h["total_revenue"] for h in per_hostel),
+            "this_month_revenue": sum(h["this_month_revenue"] for h in per_hostel),
+        }
+
+        return Response({
+            "totals": totals,
+            "hostels": per_hostel,
+        })

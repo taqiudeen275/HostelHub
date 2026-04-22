@@ -8,10 +8,10 @@ import { usePathname, useParams } from "next/navigation";
 import Link from "next/link";
 import {
   Building, Settings, LayoutDashboard, Grid, Image as ImageIcon,
-  Menu, X,
+  Menu, X, CalendarCheck, Wallet,
 } from "lucide-react";
 
-// ─── Shared nav items helper ───────────────────────────────────────────────
+// ── Shared nav items helper ───────────────────────────────────────────────
 function NavLinks({
   contextualNav,
   globalNav,
@@ -143,6 +143,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const contextualNav = activeId
     ? [
         { name: "Overview", href: `/admin/hostels/${activeId}`, icon: Building },
+        { name: "Bookings", href: `/admin/hostels/${activeId}/bookings`, icon: CalendarCheck },
+        { name: "Finances", href: `/admin/hostels/${activeId}/finances`, icon: Wallet },
         { name: "Media Gallery", href: `/admin/hostels/${activeId}/media`, icon: ImageIcon },
         { name: "Rooms & Variants", href: `/admin/hostels/${activeId}/variants`, icon: Grid },
         { name: "Hostel Settings", href: `/admin/hostels/${activeId}/settings`, icon: Settings },
