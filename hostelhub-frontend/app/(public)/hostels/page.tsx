@@ -21,6 +21,8 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { HostelCard } from "@/components/hostels/hostel-card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const GENDER_OPTIONS = [
   { value: "ALL", label: "Any" },
@@ -142,15 +144,15 @@ export default function PublicHostelsPage() {
   }, [search, genderFilter, minPrice, maxPrice, selectedAmenities, amenities]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Top chrome */}
       <TopChrome isAuthenticated={isAuthenticated} userRole={user?.role} />
 
       {/* Search + filters bar (sticky) */}
-      <div className="sticky top-14 z-30 bg-white/95 backdrop-blur border-b border-gray-200">
+      <div className="sticky top-14 z-30 bg-background/95 backdrop-blur-xl border-b border-border">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               value={searchInput}
@@ -159,29 +161,29 @@ export default function PublicHostelsPage() {
                 if (e.key === "Enter") setSearch(searchInput);
               }}
               placeholder="Search hostels by name or location"
-              className="w-full h-10 pl-10 pr-3 rounded-lg bg-gray-100 ring-1 ring-transparent focus:bg-white focus:ring-emerald-300 focus:outline-none text-sm transition-all"
+              className="w-full h-10 pl-10 pr-3 rounded-lg bg-muted ring-1 ring-transparent focus:bg-background focus:ring-primary/40 focus:outline-none text-sm transition-all"
             />
           </div>
 
           <button
             onClick={() => setDrawerOpen(true)}
-            className="h-10 px-3 sm:px-4 flex items-center gap-2 rounded-lg ring-1 ring-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium transition-colors"
+            className="h-10 px-3 sm:px-4 flex items-center gap-2 rounded-lg ring-1 ring-border bg-card hover:bg-muted text-foreground text-sm font-medium transition-colors"
           >
             <SlidersHorizontal className="w-4 h-4" />
             <span className="hidden sm:inline">Filters</span>
             {activeFilterCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-semibold flex items-center justify-center">
+              <Badge variant="default" className="h-5 min-w-5 px-1 text-[10px]">
                 {activeFilterCount}
-              </span>
+              </Badge>
             )}
           </button>
 
           <div className="hidden sm:flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4 text-gray-400" />
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
             <select
               value={ordering}
               onChange={(e) => setOrdering(e.target.value)}
-              className="h-10 px-3 rounded-lg ring-1 ring-gray-200 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-emerald-300"
+              className="h-10 px-3 rounded-lg ring-1 ring-border bg-card text-sm font-medium text-foreground focus:outline-none focus:ring-primary/40"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -198,7 +200,7 @@ export default function PublicHostelsPage() {
               <button
                 key={c.key}
                 onClick={c.onRemove}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 hover:bg-emerald-100 rounded-full pl-2.5 pr-1.5 py-1 transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 ring-1 ring-primary/20 hover:bg-primary/15 rounded-full pl-2.5 pr-1.5 py-1 transition-colors"
               >
                 {c.label}
                 <X className="w-3 h-3" />
@@ -206,7 +208,7 @@ export default function PublicHostelsPage() {
             ))}
             <button
               onClick={clearAll}
-              className="text-xs font-medium text-gray-500 hover:text-gray-800 underline underline-offset-2 ml-1"
+              className="text-xs font-medium text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1"
             >
               Clear all
             </button>
@@ -217,35 +219,35 @@ export default function PublicHostelsPage() {
       {/* Results */}
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex items-baseline justify-between mb-4">
-          <h1 className="text-xl font-semibold text-gray-900">
+          <h1 className="text-xl font-semibold text-foreground">
             {isLoading
               ? "Loading hostels…"
               : hostels.length === 0
               ? "No hostels found"
               : `${hostels.length} hostel${hostels.length === 1 ? "" : "s"}`}
           </h1>
-          <p className="hidden sm:block text-sm text-gray-500">
+          <p className="hidden sm:block text-sm text-muted-foreground">
             Verified listings · mobile money accepted
           </p>
         </div>
 
         {isLoading ? (
           <div className="flex justify-center items-center py-20">
-            <Loader2 className="w-7 h-7 animate-spin text-emerald-600" />
+            <Loader2 className="w-7 h-7 animate-spin text-primary" />
           </div>
         ) : hostels.length === 0 ? (
-          <div className="text-center py-20 rounded-xl bg-white ring-1 ring-gray-200">
-            <MapPin className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-gray-900">
+          <div className="text-center py-20 rounded-xl bg-card ring-1 ring-border">
+            <MapPin className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+            <h3 className="text-base font-semibold text-foreground">
               Nothing matches those filters
             </h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Try removing a filter, or widen your price range.
             </p>
             {activeFilterCount > 0 && (
               <button
                 onClick={clearAll}
-                className="mt-5 text-sm font-medium text-emerald-700 hover:text-emerald-800"
+                className="mt-5 text-sm font-medium text-primary hover:text-primary/80"
               >
                 Clear all filters
               </button>
@@ -260,7 +262,7 @@ export default function PublicHostelsPage() {
         )}
       </div>
 
-      {/* Filters drawer (used on both desktop + mobile — simpler than two UIs) */}
+      {/* Filters drawer */}
       <FiltersDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -296,21 +298,21 @@ function TopChrome({
       : "/";
 
   return (
-    <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-200">
+    <header className="sticky top-0 z-40 h-14 bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="max-w-6xl mx-auto h-full px-4 flex items-center gap-4">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
+          <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
             H
           </div>
-          <span className="font-semibold tracking-tight text-gray-900">
+          <span className="font-semibold tracking-tight text-foreground">
             HostelHub
           </span>
         </Link>
-        <nav className="ml-4 hidden sm:flex items-center gap-5 text-sm font-medium text-gray-600">
-          <Link href="/hostels" className="text-gray-900">
+        <nav className="ml-4 hidden sm:flex items-center gap-5 text-sm font-medium text-muted-foreground">
+          <Link href="/hostels" className="text-foreground">
             Browse
           </Link>
-          <Link href="/#how-it-works" className="hover:text-gray-900">
+          <Link href="/#how-it-works" className="hover:text-foreground transition-colors">
             How it works
           </Link>
         </nav>
@@ -318,7 +320,7 @@ function TopChrome({
         {isAuthenticated ? (
           <Link
             href={dashboardHref}
-            className="text-sm font-medium text-emerald-700 hover:text-emerald-800"
+            className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
           >
             My dashboard
           </Link>
@@ -326,16 +328,13 @@ function TopChrome({
           <>
             <Link
               href="/student/login"
-              className="hidden sm:inline text-sm font-medium text-gray-600 hover:text-gray-900"
+              className="hidden sm:inline text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Sign in
             </Link>
-            <Link
-              href="/student/login"
-              className="h-9 px-4 flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
-            >
-              Get started
-            </Link>
+            <Button asChild>
+              <Link href="/student/login">Get started</Link>
+            </Button>
           </>
         )}
       </div>
@@ -388,16 +387,16 @@ function FiltersDrawer({
         onClick={onClose}
         className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
       />
-      <aside className="relative w-full sm:max-w-sm bg-white h-full overflow-y-auto shadow-2xl animate-in slide-in-from-right duration-200">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-5 h-14 flex items-center justify-between">
+      <aside className="relative w-full sm:max-w-sm bg-background h-full overflow-y-auto shadow-2xl animate-in slide-in-from-right duration-200">
+        <div className="sticky top-0 bg-background border-b border-border px-5 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-emerald-600" />
-            <h2 className="font-semibold text-gray-900">Filters</h2>
+            <Filter className="w-4 h-4 text-primary" />
+            <h2 className="font-semibold text-foreground">Filters</h2>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500"
+            className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
           >
             <X className="w-4 h-4" />
           </button>
@@ -405,7 +404,7 @@ function FiltersDrawer({
 
         <div className="p-5 space-y-8">
           <section>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Gender policy
             </h3>
             <div className="grid grid-cols-2 gap-2">
@@ -415,8 +414,8 @@ function FiltersDrawer({
                   onClick={() => setGenderFilter(g.value)}
                   className={`h-9 rounded-lg text-sm font-medium ring-1 transition-colors ${
                     genderFilter === g.value
-                      ? "bg-emerald-600 text-white ring-emerald-600"
-                      : "bg-white text-gray-700 ring-gray-200 hover:ring-gray-300"
+                      ? "bg-primary text-primary-foreground ring-primary"
+                      : "bg-card text-foreground ring-border hover:ring-primary/40"
                   }`}
                 >
                   {g.label}
@@ -426,7 +425,7 @@ function FiltersDrawer({
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Price range (GH₵ / year)
             </h3>
             <div className="flex items-center gap-2">
@@ -435,22 +434,22 @@ function FiltersDrawer({
                 placeholder="Min"
                 value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value.replace(/\D/g, ""))}
-                className="w-full h-10 px-3 rounded-lg bg-gray-50 ring-1 ring-gray-200 text-sm focus:outline-none focus:ring-emerald-300 focus:bg-white"
+                className="w-full h-10 px-3 rounded-lg bg-muted ring-1 ring-border text-sm focus:outline-none focus:ring-primary/40 focus:bg-background"
               />
-              <span className="text-gray-400 text-sm">–</span>
+              <span className="text-muted-foreground text-sm">–</span>
               <input
                 inputMode="numeric"
                 placeholder="Max"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value.replace(/\D/g, ""))}
-                className="w-full h-10 px-3 rounded-lg bg-gray-50 ring-1 ring-gray-200 text-sm focus:outline-none focus:ring-emerald-300 focus:bg-white"
+                className="w-full h-10 px-3 rounded-lg bg-muted ring-1 ring-border text-sm focus:outline-none focus:ring-primary/40 focus:bg-background"
               />
             </div>
           </section>
 
           {amenities.length > 0 && (
             <section>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 Amenities
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -462,8 +461,8 @@ function FiltersDrawer({
                       onClick={() => toggleAmenity(a.id)}
                       className={`h-8 px-3 rounded-full text-xs font-medium ring-1 transition-colors ${
                         selected
-                          ? "bg-emerald-50 text-emerald-700 ring-emerald-300"
-                          : "bg-white text-gray-700 ring-gray-200 hover:ring-gray-300"
+                          ? "bg-primary/10 text-primary ring-primary/30"
+                          : "bg-card text-foreground ring-border hover:ring-primary/40"
                       }`}
                     >
                       {a.name}
@@ -475,22 +474,19 @@ function FiltersDrawer({
           )}
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex items-center gap-3">
+        <div className="sticky bottom-0 bg-background border-t border-border p-4 flex items-center gap-3">
           <button
             onClick={() => {
               onClear();
             }}
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Clear
           </button>
           <div className="flex-1" />
-          <button
-            onClick={onClose}
-            className="h-10 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
-          >
+          <Button onClick={onClose} size="lg">
             Show results
-          </button>
+          </Button>
         </div>
       </aside>
     </div>

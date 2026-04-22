@@ -23,6 +23,8 @@ import {
   type RoomVariant,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 type Step = 1 | 2 | 3;
 
@@ -97,8 +99,8 @@ export default function BookPage() {
 
   if (isLoading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -125,21 +127,21 @@ export default function BookPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-200">
+      <header className="sticky top-0 z-40 h-14 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-4xl mx-auto h-full px-4 flex items-center gap-3">
           <Link
             href={`/hostels/${slug}`}
-            className="w-9 h-9 -ml-1 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600"
+            className="w-9 h-9 -ml-1 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="min-w-0">
-            <h1 className="font-semibold text-gray-900 leading-tight truncate">
+            <h1 className="font-semibold text-foreground leading-tight truncate">
               Book — {variant.name}
             </h1>
-            <p className="text-xs text-gray-500 truncate">{hostel.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{hostel.name}</p>
           </div>
         </div>
       </header>
@@ -177,57 +179,60 @@ export default function BookPage() {
       </div>
 
       {/* Sticky action bar */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 backdrop-blur">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           {step === 1 && (
             <>
               <Link
                 href={`/hostels/${slug}`}
-                className="text-sm font-medium text-gray-500 hover:text-gray-800"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cancel
               </Link>
               <div className="flex-1" />
-              <button
+              <Button
                 disabled={!selectedRoomId}
                 onClick={() => setStep(2)}
-                className="h-11 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                size="lg"
+                className="gap-1.5"
               >
                 Continue <ArrowRight className="w-4 h-4" />
-              </button>
+              </Button>
             </>
           )}
           {step === 2 && (
             <>
               <button
                 onClick={() => setStep(1)}
-                className="text-sm font-medium text-gray-500 hover:text-gray-800"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Back
               </button>
               <div className="flex-1" />
-              <button
+              <Button
                 onClick={() => setStep(3)}
-                className="h-11 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                size="lg"
+                className="gap-1.5"
               >
                 Review <ArrowRight className="w-4 h-4" />
-              </button>
+              </Button>
             </>
           )}
           {step === 3 && (
             <>
               <button
                 onClick={() => setStep(2)}
-                className="text-sm font-medium text-gray-500 hover:text-gray-800"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 disabled={submitting}
               >
                 Back
               </button>
               <div className="flex-1" />
-              <button
+              <Button
                 onClick={handlePay}
                 disabled={submitting}
-                className="h-11 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white text-sm font-semibold flex items-center gap-1.5 transition-colors"
+                size="lg"
+                className="gap-1.5"
               >
                 {submitting ? (
                   <>
@@ -238,7 +243,7 @@ export default function BookPage() {
                     Pay GH₵ {pricePerSlot.toLocaleString()} <ArrowRight className="w-4 h-4" />
                   </>
                 )}
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -261,14 +266,14 @@ function StepRoomPicker({
   const rooms = variant.rooms ?? [];
   return (
     <section>
-      <h2 className="text-xl font-semibold text-gray-900">Pick a room</h2>
-      <p className="text-sm text-gray-600 mt-1 mb-5">
+      <h2 className="text-xl font-semibold text-foreground">Pick a room</h2>
+      <p className="text-sm text-muted-foreground mt-1 mb-5">
         Rooms already taken are disabled. Rooms with "partial" are shared — you'll
         inherit whatever occupancy the first booker chose.
       </p>
 
       {rooms.length === 0 ? (
-        <div className="rounded-xl bg-white ring-1 ring-gray-200 p-6 text-sm text-gray-500 text-center">
+        <div className="rounded-xl bg-card ring-1 ring-border p-6 text-sm text-muted-foreground text-center">
           This variant has no rooms yet.
         </div>
       ) : (
@@ -283,32 +288,32 @@ function StepRoomPicker({
                 onClick={() => onPick(r.id)}
                 className={`relative rounded-xl p-4 text-left ring-1 transition-all ${
                   disabled
-                    ? "bg-gray-50 ring-gray-200 text-gray-400 cursor-not-allowed"
+                    ? "bg-muted ring-border text-muted-foreground/60 cursor-not-allowed"
                     : selected
-                    ? "bg-emerald-50 ring-emerald-400 text-emerald-900 shadow-sm"
-                    : "bg-white ring-gray-200 hover:ring-emerald-300 text-gray-900"
+                    ? "bg-primary/10 ring-primary shadow-sm"
+                    : "bg-card ring-border hover:ring-primary/40 text-foreground"
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="font-semibold">{r.label}</div>
                   {selected && (
-                    <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                    <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
                       <Check className="w-3 h-3" />
                     </div>
                   )}
                 </div>
                 <div className="mt-2 text-[11px] font-medium">
                   {r.status === "AVAILABLE" && (
-                    <span className="text-emerald-700">Available</span>
+                    <span className="text-primary">Available</span>
                   )}
                   {r.status === "PARTIALLY_BOOKED" && r.locked_k != null && (
-                    <span className="text-amber-700">
+                    <span className="text-amber-600 dark:text-amber-400">
                       {r.locked_k}-way share · spots remain
                     </span>
                   )}
-                  {r.status === "FULL" && <span className="text-gray-400">Full</span>}
+                  {r.status === "FULL" && <span className="text-muted-foreground/60">Full</span>}
                   {r.status === "UNAVAILABLE" && (
-                    <span className="text-gray-400">Unavailable</span>
+                    <span className="text-muted-foreground/60">Unavailable</span>
                   )}
                 </div>
               </button>
@@ -339,20 +344,20 @@ function StepOccupancy({
 
   return (
     <section>
-      <h2 className="text-xl font-semibold text-gray-900">Occupancy</h2>
+      <h2 className="text-xl font-semibold text-foreground">Occupancy</h2>
       {locked ? (
-        <div className="mt-4 rounded-xl bg-amber-50 ring-1 ring-amber-200 p-5 flex items-start gap-3">
-          <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <div className="mt-4 rounded-xl bg-amber-50 ring-1 ring-amber-200 p-5 flex items-start gap-3 dark:bg-amber-950 dark:ring-amber-800">
+          <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-amber-900">Room {room.label} is shared</p>
-            <p className="text-sm text-amber-800 mt-1">
+            <p className="font-semibold text-amber-900 dark:text-amber-200">Room {room.label} is shared</p>
+            <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
               Another student booked this room first and chose {room.locked_k}-way
               occupancy. You'll be their roommate at the same per-slot price.
             </p>
           </div>
         </div>
       ) : (
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           How many people will share this room? The price is split evenly — more
           people means each of you pays less.
         </p>
@@ -370,24 +375,24 @@ function StepOccupancy({
               onClick={() => onChange(n)}
               className={`rounded-xl p-4 text-left ring-1 transition-all ${
                 !selectable
-                  ? "bg-gray-50 ring-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-muted ring-border text-muted-foreground/60 cursor-not-allowed"
                   : selected
-                  ? "bg-emerald-50 ring-emerald-400 shadow-sm"
-                  : "bg-white ring-gray-200 hover:ring-emerald-300"
+                  ? "bg-primary/10 ring-primary shadow-sm"
+                  : "bg-card ring-border hover:ring-primary/40"
               }`}
             >
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-gray-400" />
-                <span className="font-semibold">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <span className="font-semibold text-foreground">
                   {n === 1 ? "Solo" : `${n}-way share`}
                 </span>
               </div>
-              <div className="mt-1.5 text-sm text-gray-600">
+              <div className="mt-1.5 text-sm text-muted-foreground">
                 GH₵ {(Number(variant.total_price) / n).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
-                <span className="text-xs text-gray-500"> / slot / year</span>
+                <span className="text-xs"> / slot / year</span>
               </div>
             </button>
           );
@@ -415,33 +420,35 @@ function StepReview({
   return (
     <section className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Review &amp; pay</h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <h2 className="text-xl font-semibold text-foreground">Review &amp; pay</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Once you tap Pay, we'll hold this slot for 15 minutes while you finish on Paystack.
         </p>
       </div>
 
-      <dl className="rounded-xl bg-white ring-1 ring-gray-200 divide-y divide-gray-100">
-        <ReviewRow label="Hostel" value={hostelName} />
-        <ReviewRow label="Variant" value={variant.name} />
-        <ReviewRow label="Room" value={room.label} />
-        <ReviewRow
-          label="Occupancy"
-          value={occupancy === 1 ? "Solo (1 person)" : `${occupancy}-way share`}
-        />
-        <ReviewRow
-          label="Price per slot"
-          value={`GH₵ ${pricePerSlot.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })} / year`}
-          emphasis
-        />
-      </dl>
+      <Card>
+        <CardContent className="p-0 divide-y divide-border">
+          <ReviewRow label="Hostel" value={hostelName} />
+          <ReviewRow label="Variant" value={variant.name} />
+          <ReviewRow label="Room" value={room.label} />
+          <ReviewRow
+            label="Occupancy"
+            value={occupancy === 1 ? "Solo (1 person)" : `${occupancy}-way share`}
+          />
+          <ReviewRow
+            label="Price per slot"
+            value={`GH₵ ${pricePerSlot.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })} / year`}
+            emphasis
+          />
+        </CardContent>
+      </Card>
 
-      <div className="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 p-4 flex items-start gap-3">
-        <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-        <p className="text-sm text-emerald-900">
+      <div className="rounded-xl bg-primary/5 ring-1 ring-primary/20 p-4 flex items-start gap-3">
+        <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <p className="text-sm text-foreground">
           Payment is handled by Paystack — card, MTN MoMo, Telecel, and AirtelTigo.
           Your slot is released automatically if you don't finish paying in 15 minutes.
         </p>
@@ -461,9 +468,9 @@ function ReviewRow({
 }) {
   return (
     <div className="flex items-center justify-between px-4 py-3">
-      <dt className="text-sm text-gray-500">{label}</dt>
+      <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd
-        className={`text-sm font-medium ${emphasis ? "text-emerald-700 font-semibold" : "text-gray-900"}`}
+        className={`text-sm font-medium ${emphasis ? "text-primary font-semibold" : "text-foreground"}`}
       >
         {value}
       </dd>
@@ -489,21 +496,21 @@ function StepIndicator({ step }: { step: Step }) {
             <span
               className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 ${
                 done
-                  ? "bg-emerald-600 text-white"
+                  ? "bg-primary text-primary-foreground"
                   : active
-                  ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-400"
-                  : "bg-gray-100 text-gray-400"
+                  ? "bg-primary/10 text-primary ring-1 ring-primary"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               {done ? <Check className="w-3 h-3" /> : s.n}
             </span>
             <span
-              className={`truncate ${active ? "font-semibold text-gray-900" : "text-gray-500"}`}
+              className={`truncate ${active ? "font-semibold text-foreground" : "text-muted-foreground"}`}
             >
               {s.label}
             </span>
             {i < steps.length - 1 && (
-              <span className="mx-2 h-px w-6 bg-gray-200 hidden sm:block" />
+              <span className="mx-2 h-px w-6 bg-border hidden sm:block" />
             )}
           </li>
         );

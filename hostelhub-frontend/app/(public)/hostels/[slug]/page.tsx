@@ -22,6 +22,9 @@ import {
 
 import { type Hostel, type HostelMedia, publicHostelsApi } from "@/lib/api";
 import { PhotoLightbox } from "@/components/hostels/photo-lightbox";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function PublicHostelDetailPage() {
   const { slug } = useParams() as { slug: string };
@@ -65,8 +68,8 @@ export default function PublicHostelDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -95,50 +98,50 @@ export default function PublicHostelDetailPage() {
 
   const genderTone =
     hostel.gender_policy === "MALE"
-      ? "bg-sky-50 text-sky-700 ring-sky-200"
+      ? "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-800"
       : hostel.gender_policy === "FEMALE"
-      ? "bg-rose-50 text-rose-700 ring-rose-200"
-      : "bg-violet-50 text-violet-700 ring-violet-200";
+      ? "bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-800"
+      : "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:ring-violet-800";
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-background pb-24">
       {/* Sticky back bar */}
-      <header className="sticky top-0 z-40 h-14 bg-white/95 backdrop-blur border-b border-gray-200">
+      <header className="sticky top-0 z-40 h-14 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-6xl mx-auto px-4 h-full flex items-center gap-3">
           <Link
             href="/hostels"
-            className="w-9 h-9 -ml-1 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600"
+            className="w-9 h-9 -ml-1 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="min-w-0">
-            <h1 className="font-semibold text-gray-900 leading-tight truncate">
+            <h1 className="font-semibold text-foreground leading-tight truncate">
               {hostel.name}
             </h1>
-            <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
               <MapPin className="w-3 h-3 shrink-0" />
               <span className="truncate">{hostel.address_text}</span>
             </div>
           </div>
           <div className="ml-auto hidden sm:flex items-center gap-3">
-            <a
-              href={`tel:${hostel.owner_contact_phone}`}
-              className="h-9 px-3 flex items-center gap-1.5 rounded-lg ring-1 ring-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium"
-            >
-              <Phone className="w-4 h-4" />
-              Call
-            </a>
-            <a
-              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-                `Hi, I'm interested in ${hostel.name} on HostelHub.`
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              className="h-9 px-3 flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
-            >
-              <MessageCircle className="w-4 h-4" />
-              WhatsApp
-            </a>
+            <Button variant="outline" size="sm" asChild className="gap-1.5">
+              <a href={`tel:${hostel.owner_contact_phone}`}>
+                <Phone className="w-4 h-4" />
+                Call
+              </a>
+            </Button>
+            <Button size="sm" asChild className="gap-1.5">
+              <a
+                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                  `Hi, I'm interested in ${hostel.name} on HostelHub.`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                WhatsApp
+              </a>
+            </Button>
           </div>
         </div>
       </header>
@@ -158,10 +161,10 @@ export default function PublicHostelDetailPage() {
       <section className="max-w-6xl mx-auto px-4 mt-6">
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               {hostel.name}
             </h2>
-            <div className="flex items-center gap-1.5 text-gray-500 mt-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground mt-1">
               <MapPin className="w-4 h-4" />
               <span className="text-sm">{hostel.address_text}</span>
             </div>
@@ -199,12 +202,12 @@ export default function PublicHostelDetailPage() {
         <div className="min-w-0 space-y-8">
           {/* Overview */}
           <section id="overview">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            <h3 className="text-lg font-semibold text-foreground mb-3">
               About this property
             </h3>
-            <div className="text-gray-700 text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+            <div className="text-muted-foreground text-[15px] leading-relaxed whitespace-pre-wrap break-words">
               {hostel.description || (
-                <span className="text-gray-400">
+                <span className="text-muted-foreground/60">
                   This hostel hasn't added a description yet.
                 </span>
               )}
@@ -214,11 +217,11 @@ export default function PublicHostelDetailPage() {
           {/* Hostel video walkthrough (if any) */}
           {hostelVideo && (
             <section>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Video className="w-5 h-5 text-emerald-600" />
+              <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Video className="w-5 h-5 text-primary" />
                 Walk-through
               </h3>
-              <div className="rounded-xl overflow-hidden ring-1 ring-gray-200 bg-black">
+              <div className="rounded-xl overflow-hidden ring-1 ring-border bg-black">
                 <video
                   controls
                   preload="metadata"
@@ -232,11 +235,11 @@ export default function PublicHostelDetailPage() {
 
           {/* Rooms */}
           <section id="rooms">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            <h3 className="text-lg font-semibold text-foreground mb-3">
               Rooms &amp; pricing
             </h3>
             {hostel.variants.length === 0 ? (
-              <div className="rounded-xl bg-white ring-1 ring-gray-200 p-6 text-sm text-gray-500 text-center">
+              <div className="rounded-xl bg-card ring-1 ring-border p-6 text-sm text-muted-foreground text-center">
                 No room layouts have been published yet.
               </div>
             ) : (
@@ -251,16 +254,16 @@ export default function PublicHostelDetailPage() {
           {/* Amenities */}
           {hostel.amenities && hostel.amenities.length > 0 && (
             <section id="amenities">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-semibold text-foreground mb-3">
                 What's included
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {hostel.amenities.map((a) => (
                   <div
                     key={a.id}
-                    className="flex items-center gap-2 rounded-lg bg-white ring-1 ring-gray-200 px-3 py-2.5 text-sm text-gray-700"
+                    className="flex items-center gap-2 rounded-lg bg-card ring-1 ring-border px-3 py-2.5 text-sm text-foreground"
                   >
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <Check className="w-4 h-4 text-primary shrink-0" />
                     <span className="truncate">{a.name}</span>
                   </div>
                 ))}
@@ -270,91 +273,95 @@ export default function PublicHostelDetailPage() {
 
           {/* Location */}
           <section id="location">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            <h3 className="text-lg font-semibold text-foreground mb-3">
               Location
             </h3>
-            <div className="rounded-xl bg-white ring-1 ring-gray-200 p-5 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">
-                  {hostel.address_text}
-                </p>
-                {hostel.latitude && hostel.longitude ? (
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {Number(hostel.latitude).toFixed(5)},{" "}
-                    {Number(hostel.longitude).toFixed(5)}
+            <Card>
+              <CardContent className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    {hostel.address_text}
                   </p>
-                ) : (
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Precise coordinates not provided by owner.
-                  </p>
-                )}
-                <a
-                  href={mapHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-800"
-                >
-                  Open in Google Maps
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
+                  {hostel.latitude && hostel.longitude ? (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {Number(hostel.latitude).toFixed(5)},{" "}
+                      {Number(hostel.longitude).toFixed(5)}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Precise coordinates not provided by owner.
+                    </p>
+                  )}
+                  <a
+                    href={mapHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Open in Google Maps
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
           </section>
         </div>
 
         {/* Right sidebar — sticky contact */}
         <aside className="lg:sticky lg:top-20 self-start">
-          <div className="rounded-xl bg-white ring-1 ring-gray-200 p-5">
-            <div className="flex items-baseline justify-between mb-1">
-              {startingPrice > 0 ? (
-                <div>
-                  <span className="text-2xl font-bold text-gray-900">
-                    GH₵ {startingPrice.toLocaleString()}
-                  </span>
-                  <span className="text-sm text-gray-500 font-normal"> / year</span>
-                </div>
-              ) : (
-                <span className="text-sm text-gray-500">Pricing coming soon</span>
-              )}
-              {availableRooms > 0 && (
-                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 rounded-full px-2 py-0.5">
-                  {availableRooms} open
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 mb-5">
-              Contact the owner directly to arrange a viewing or reserve a room.
-            </p>
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-baseline justify-between mb-1">
+                {startingPrice > 0 ? (
+                  <div>
+                    <span className="text-2xl font-bold text-foreground">
+                      GH₵ {startingPrice.toLocaleString()}
+                    </span>
+                    <span className="text-sm text-muted-foreground font-normal"> / year</span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Pricing coming soon</span>
+                )}
+                {availableRooms > 0 && (
+                  <Badge variant="default" className="gap-1 text-[10px]">
+                    {availableRooms} open
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mb-5">
+                Contact the owner directly to arrange a viewing or reserve a room.
+              </p>
 
-            <div className="space-y-2.5">
-              <a
-                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-                  `Hi, I'm interested in ${hostel.name} on HostelHub.`
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white h-11 rounded-lg font-semibold text-sm transition-colors"
-              >
-                <MessageCircle className="w-4 h-4" />
-                WhatsApp owner
-              </a>
-              <a
-                href={`tel:${hostel.owner_contact_phone}`}
-                className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-800 ring-1 ring-gray-200 h-11 rounded-lg font-semibold text-sm transition-colors"
-              >
-                <Phone className="w-4 h-4 text-gray-500" />
-                Call {hostel.owner_contact_phone}
-              </a>
-            </div>
+              <div className="space-y-2.5">
+                <Button asChild className="w-full gap-2">
+                  <a
+                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                      `Hi, I'm interested in ${hostel.name} on HostelHub.`
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    WhatsApp owner
+                  </a>
+                </Button>
+                <Button variant="outline" asChild className="w-full gap-2">
+                  <a href={`tel:${hostel.owner_contact_phone}`}>
+                    <Phone className="w-4 h-4" />
+                    Call {hostel.owner_contact_phone}
+                  </a>
+                </Button>
+              </div>
 
-            <div className="mt-5 pt-5 border-t border-gray-100 grid grid-cols-2 gap-3 text-xs text-gray-600">
-              <InfoLine label="Layouts" value={hostel.variants.length} icon={Users} />
-              <InfoLine label="Rooms" value={allRooms.length} icon={ImageIcon} />
-            </div>
-          </div>
+              <div className="mt-5 pt-5 border-t border-border grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                <InfoLine label="Layouts" value={hostel.variants.length} icon={Users} />
+                <InfoLine label="Rooms" value={allRooms.length} icon={ImageIcon} />
+              </div>
+            </CardContent>
+          </Card>
         </aside>
       </div>
 
@@ -383,19 +390,19 @@ function Stat({
 }) {
   const toneClass =
     tone === "positive"
-      ? "text-emerald-700"
+      ? "text-primary"
       : tone === "muted"
-      ? "text-gray-400"
-      : "text-gray-900";
+      ? "text-muted-foreground/60"
+      : "text-foreground";
   return (
-    <div className="rounded-xl bg-white ring-1 ring-gray-200 px-4 py-3">
-      <dt className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+    <div className="rounded-xl bg-card ring-1 ring-border px-4 py-3">
+      <dt className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
         {label}
       </dt>
       <dd className={`mt-1 text-lg font-semibold leading-tight ${toneClass}`}>
         {value}
       </dd>
-      {hint && <span className="text-[11px] text-gray-500">{hint}</span>}
+      {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
     </div>
   );
 }
@@ -411,10 +418,10 @@ function InfoLine({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <Icon className="w-4 h-4 text-gray-400" />
+      <Icon className="w-4 h-4 text-muted-foreground" />
       <span>
-        <span className="font-semibold text-gray-900">{value}</span>{" "}
-        <span className="text-gray-500">{label.toLowerCase()}</span>
+        <span className="font-semibold text-foreground">{value}</span>{" "}
+        <span className="text-muted-foreground">{label.toLowerCase()}</span>
       </span>
     </div>
   );
@@ -429,7 +436,7 @@ function GalleryHero({
 }) {
   if (photos.length === 0) {
     return (
-      <div className="aspect-[16/9] sm:aspect-[21/9] rounded-xl bg-gray-100 ring-1 ring-gray-200 flex flex-col items-center justify-center text-gray-400">
+      <div className="aspect-[16/9] sm:aspect-[21/9] rounded-xl bg-muted ring-1 ring-border flex flex-col items-center justify-center text-muted-foreground/50">
         <ImageIcon className="w-8 h-8 mb-1" />
         <span className="text-sm">No photos yet</span>
       </div>
@@ -446,7 +453,7 @@ function GalleryHero({
       <button
         type="button"
         onClick={() => onOpenLightbox(0)}
-        className="sm:col-span-2 sm:row-span-2 relative group aspect-[4/3] sm:aspect-auto bg-gray-100 overflow-hidden"
+        className="sm:col-span-2 sm:row-span-2 relative group aspect-[4/3] sm:aspect-auto bg-muted overflow-hidden"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -464,7 +471,7 @@ function GalleryHero({
             type="button"
             key={p.id}
             onClick={() => onOpenLightbox(idx + 1)}
-            className="relative group hidden sm:block aspect-square bg-gray-100 overflow-hidden"
+            className="relative group hidden sm:block aspect-square bg-muted overflow-hidden"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -486,7 +493,7 @@ function GalleryHero({
       <button
         type="button"
         onClick={() => onOpenLightbox(0)}
-        className="sm:hidden mt-2 h-10 rounded-lg bg-white ring-1 ring-gray-200 text-sm font-medium text-gray-700 flex items-center justify-center gap-2"
+        className="sm:hidden mt-2 h-10 rounded-lg bg-card ring-1 ring-border text-sm font-medium text-foreground flex items-center justify-center gap-2"
       >
         <Expand className="w-4 h-4" />
         Show all {photos.length} photos
@@ -497,7 +504,7 @@ function GalleryHero({
         <button
           type="button"
           onClick={() => onOpenLightbox(0)}
-          className="hidden sm:flex absolute items-center gap-1.5 bg-white ring-1 ring-gray-200 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-gray-50"
+          className="hidden sm:flex absolute items-center gap-1.5 bg-card ring-1 ring-border text-foreground text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-muted"
           style={{ position: "relative", marginTop: "-36px", justifySelf: "end", marginRight: "8px" }}
         >
           <Expand className="w-3.5 h-3.5" />
@@ -529,26 +536,26 @@ function VariantCard({
       : null;
 
   return (
-    <div className="rounded-xl bg-white ring-1 ring-gray-200 overflow-hidden">
-      <div className="p-5">
+    <Card className="overflow-hidden">
+      <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h4 className="font-semibold text-gray-900">{variant.name}</h4>
+            <h4 className="font-semibold text-foreground">{variant.name}</h4>
             {variant.description && (
-              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                 {variant.description}
               </p>
             )}
           </div>
           <div className="text-right shrink-0">
-            <div className="text-lg font-bold text-gray-900 leading-tight">
+            <div className="text-lg font-bold text-foreground leading-tight">
               GH₵ {Number(variant.total_price).toLocaleString()}
             </div>
-            <div className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
               Per year
             </div>
             {perSlot && (
-              <div className="text-xs text-emerald-700 font-medium mt-1">
+              <div className="text-xs text-primary font-medium mt-1">
                 Shared: GH₵ {Math.round(perSlot).toLocaleString()}/slot
               </div>
             )}
@@ -556,18 +563,18 @@ function VariantCard({
         </div>
 
         <div className="mt-4 flex items-center flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-50 ring-1 ring-gray-200 rounded px-2 py-1">
-            <Users className="w-3.5 h-3.5 text-gray-400" />
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted ring-1 ring-border rounded px-2 py-1">
+            <Users className="w-3.5 h-3.5 text-muted-foreground" />
             {variant.min_occupancy === variant.max_occupancy
               ? `${variant.max_occupancy} per room`
               : `${variant.min_occupancy}–${variant.max_occupancy} per room`}
           </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-50 ring-1 ring-gray-200 rounded px-2 py-1">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted ring-1 ring-border rounded px-2 py-1">
             {rooms.length} {rooms.length === 1 ? "room" : "rooms"}
           </span>
 
           {available > 0 && (
-            <AvailabilityPill tone="emerald">
+            <AvailabilityPill tone="primary">
               {available} available
             </AvailabilityPill>
           )}
@@ -577,17 +584,17 @@ function VariantCard({
             </AvailabilityPill>
           )}
           {full > 0 && (
-            <AvailabilityPill tone="gray">
+            <AvailabilityPill tone="muted">
               {full} full
             </AvailabilityPill>
           )}
         </div>
 
         {variant.features && variant.features.length > 0 && (
-          <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-gray-700">
+          <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-foreground">
             {variant.features.slice(0, 6).map((f, i) => (
               <li key={i} className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <Check className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span className="truncate">{f}</span>
               </li>
             ))}
@@ -596,27 +603,26 @@ function VariantCard({
 
         <div className="mt-5 flex items-center gap-3">
           {canBook ? (
-            <Link
-              href={`/book/${hostelSlug}/${variant.id}`}
-              className="h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold inline-flex items-center gap-1.5 transition-colors"
-            >
-              Book a room
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <Button asChild className="gap-1.5">
+              <Link href={`/book/${hostelSlug}/${variant.id}`}>
+                Book a room
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
           ) : (
-            <span className="h-10 px-4 rounded-lg bg-gray-100 text-gray-400 text-sm font-semibold inline-flex items-center">
+            <Button variant="secondary" disabled>
               Fully booked
-            </span>
+            </Button>
           )}
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted-foreground">
             15-minute hold while you pay
           </span>
         </div>
-      </div>
+      </CardContent>
 
       {video && (
-        <details className="border-t border-gray-100">
-          <summary className="cursor-pointer list-none px-5 py-3 flex items-center gap-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50/50 transition-colors">
+        <details className="border-t border-border">
+          <summary className="cursor-pointer list-none px-5 py-3 flex items-center gap-2 text-sm font-medium text-primary hover:bg-primary/5 transition-colors">
             <Play className="w-4 h-4" />
             Watch walkthrough
           </summary>
@@ -627,7 +633,7 @@ function VariantCard({
           </div>
         </details>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -636,20 +642,20 @@ function AvailabilityPill({
   tone,
 }: {
   children: React.ReactNode;
-  tone: "emerald" | "amber" | "gray";
+  tone: "primary" | "amber" | "muted";
 }) {
   const classes =
-    tone === "emerald"
-      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+    tone === "primary"
+      ? "bg-primary/10 text-primary ring-primary/20"
       : tone === "amber"
-      ? "bg-amber-50 text-amber-700 ring-amber-200"
-      : "bg-gray-50 text-gray-600 ring-gray-200";
+      ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-800"
+      : "bg-muted text-muted-foreground ring-border";
   const dot =
-    tone === "emerald"
-      ? "bg-emerald-500"
+    tone === "primary"
+      ? "bg-primary"
       : tone === "amber"
       ? "bg-amber-500"
-      : "bg-gray-400";
+      : "bg-muted-foreground";
   return (
     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ring-1 rounded-full px-2 py-0.5 ${classes}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
